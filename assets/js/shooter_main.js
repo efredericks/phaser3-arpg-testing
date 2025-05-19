@@ -21,7 +21,7 @@ class shooterMain extends Phaser.Scene {
         });
 
         this.cameraSpeed = 10;
-        this.cameras.main.setZoom(2);
+        this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
 
 
@@ -30,7 +30,21 @@ class shooterMain extends Phaser.Scene {
         this.player.setDepth(99);
         this.player.setCollideWorldBounds(true);
 
-        this.player.bullets = new Bullets(this);
+        this.enemies = this.physics.add.group({ key: 'sprSand', frame: 0, repeat: 53 });
+        // this.enemies = this.grp_enemies.getChildren();
+        Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: 0, y: 0 });
+
+
+
+        // for (let i = 0; i < 5; i++) {
+        //     let e = this.physics.add.sprite(i * 10 + 20, 0, 'sprSand');
+        //     this.enemies.add(e);
+        // }
+
+        // Add 2 groups for Bullet objects
+        this.playerBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
+        this.enemyBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
+
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -41,6 +55,9 @@ class shooterMain extends Phaser.Scene {
 
     collision_cb(a, b) {
         // console.log(a,b);
+    }
+
+    bulletHit(a, b) {
     }
 
     update() {
@@ -66,16 +83,20 @@ class shooterMain extends Phaser.Scene {
 
         // fire keys
         if (this.cursors.left.isDown) {
-            this.player.bullets.fireBullet(this.player.x, this.player.y, -1, 0);
+            // this.player.bullets.fireBullet(this.player.x, this.player.y, -1, 0);
+            this.fireBullet(this.player, -1, 0);
         }
         else if (this.cursors.right.isDown) {
-            this.player.bullets.fireBullet(this.player.x, this.player.y, 1, 0);
+            // this.player.bullets.fireBullet(this.player.x, this.player.y, 1, 0);
+            this.fireBullet(this.player, 1, 0);
         }
         if (this.cursors.up.isDown) {
-            this.player.bullets.fireBullet(this.player.x, this.player.y, 0, -1);
+            // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, -1);
+            this.fireBullet(this.player, 0, -1);
         }
         else if (this.cursors.down.isDown) {
-            this.player.bullets.fireBullet(this.player.x, this.player.y, 0, 1);
+            // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, 1);
+            this.fireBullet(this.player, 0, 1);
         }
 
 
@@ -84,12 +105,75 @@ class shooterMain extends Phaser.Scene {
         // this.player.x = this.followPoint.x;
         // this.player.y = this.followPoint.y;
     }
+    fireBullet(e, vx, vy) {
+        let grp;
+        let other;
+        if (e === this.player) {
+            grp = this.playerBullets;
+            other = this.enemies;
+        }
+        else {
+            grp = this.enemyBullets;
+            other = this.player;
+        }
+
+        // Get bullet from bullets group
+        const bullet = grp.get().setActive(true).setVisible(true);
+
+        if (bullet) {
+            bullet.fire(e, vx, vy);//this.reticle);
+            this.physics.add.collider(other, bullet, (enemyHit, bulletHit) => this.enemyHitCallback(enemyHit, bulletHit));
+        }
+    }
+    enemyHitCallback(enemyHit, bulletHit) {
+        // Reduce health of enemy
+        if (bulletHit.active === true && enemyHit.active === true) {
+            // enemyHit.health = enemyHit.health - 1;
+            // console.log('Enemy hp: ', enemyHit.health);
+
+            // // Kill enemy if health <= 0
+            // if (enemyHit.health <= 0) {
+            //     enemyHit.setActive(false).setVisible(false);
+            // }
+
+            // Destroy bullet
+            bulletHit.setActive(false).setVisible(false);
+        }
+    }
+
+    playerHitCallback(playerHit, bulletHit) {
+        // Reduce health of player
+        if (bulletHit.active === true && playerHit.active === true) {
+            // playerHit.health = playerHit.health - 1;
+            // console.log('Player hp: ', playerHit.health);
+
+            // // Kill hp sprites and kill player if health <= 0
+            // if (playerHit.health === 2) {
+            //     this.hp3.destroy();
+            // }
+            // else if (playerHit.health === 1) {
+            //     this.hp2.destroy();
+            // }
+            // else {
+            //     this.hp1.destroy();
+
+            //     // Game over state should execute here
+            // }
+
+            // Destroy bullet
+            bulletHit.setActive(false).setVisible(false);
+        }
+    }
+
 }
 
+
+/*
 class Bullet extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, 'bullet');
         this.speed = 300;
+        // console.log(this.scene.player);
     }
 
     fire(x, y, vx, vy) {
@@ -136,6 +220,50 @@ class Bullets extends Phaser.Physics.Arcade.Group {
 
         if (bullet) {
             bullet.fire(x, y, vx, vy);
+        }
+    }
+}
+*/
+
+class Bullet extends Phaser.GameObjects.Image {
+    constructor(scene) {
+        super(scene, 0, 0, 'bullet');
+        this.speed = 1;
+        this.born = 0;
+        this.direction = 0;
+        this.xSpeed = 0;
+        this.ySpeed = 0;
+        this.setSize(12, 12, true);
+    }
+
+    fire(shooter, vx, vy) {//target) {
+        this.setPosition(shooter.x, shooter.y); // Initial position
+
+        this.xSpeed = this.speed * vx;
+        this.ySpeed = this.speed * vy;
+        // this.direction = Math.atan((target.x - this.x) / (target.y - this.y));
+
+        // // Calculate X and y velocity of bullet to moves it from shooter to target
+        // if (target.y >= this.y) {
+        //     this.xSpeed = this.speed * Math.sin(this.direction);
+        //     this.ySpeed = this.speed * Math.cos(this.direction);
+        // }
+        // else {
+        //     this.xSpeed = -this.speed * Math.sin(this.direction);
+        //     this.ySpeed = -this.speed * Math.cos(this.direction);
+        // }
+
+        // this.rotation = shooter.rotation; // angle bullet with shooters rotation
+        this.born = 0; // Time since new bullet spawned
+    }
+
+    update(time, delta) {
+        this.x += this.xSpeed * delta;
+        this.y += this.ySpeed * delta;
+        this.born += delta;
+        if (this.born > 1800) {
+            this.setActive(false);
+            this.setVisible(false);
         }
     }
 }
