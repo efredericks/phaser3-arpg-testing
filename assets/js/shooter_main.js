@@ -11,6 +11,8 @@ class shooterMain extends Phaser.Scene {
         this.load.image("sprSand", "assets/img/sprSand.png");
         this.load.image("sprGrass", "assets/img/sprGrass.png");
         this.load.image("bullet", "assets/img/kenney_rpg-urban-pack/Tiles/tile_0060.png");
+
+        this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
     }
 
     create() {
@@ -26,7 +28,7 @@ class shooterMain extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(0x1D1923);
 
 
-        this.player = this.physics.add.sprite(10, 10, 'sprGrass');
+        this.player = this.physics.add.sprite(10, 10, 'wizard');
         this.player.setBounce(0.2);
         this.player.setDepth(99);
         // this.player.setCollideWorldBounds(true);
