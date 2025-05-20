@@ -38,6 +38,16 @@ class shooterMain extends Phaser.Scene {
                 let ch = 0;
                 if (r == 0 || c == 0 || r == 99 || c == 99)
                     ch = 14;
+                else {
+                    let r = Math.random();
+                    if (r < 0.9) ch = 48;
+                    else if (r < 0.95) ch = 49;
+                    else ch = 42;
+                }
+
+                //42 stones
+                //48 blank
+                //49 dots
 
                 row.push(ch);
             }
