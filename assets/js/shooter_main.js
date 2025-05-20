@@ -13,6 +13,7 @@ class shooterMain extends Phaser.Scene {
         this.load.image("bullet", "assets/img/kenney_rpg-urban-pack/Tiles/tile_0060.png");
 
         this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
+        this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
     }
 
     create() {
@@ -35,12 +36,12 @@ class shooterMain extends Phaser.Scene {
         this.player.health = 10;
         this.player.fire_cooldown = 0;
 
-        this.enemies = this.physics.add.group({ key: 'sprSand', frame: 0, repeat: 53, health: 500 });
+        this.enemies = this.physics.add.group({ key: 'ghost', frame: 0, repeat: 53, health: 500 });
         // this.enemies = this.grp_enemies.getChildren();
         Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: 0, y: 0 });
 
         for (let e of this.enemies.getChildren()) {
-            e.health = 200;
+            e.health = 5;
             e.pushback = -1;
             e.pushspeed = 50;
         }
