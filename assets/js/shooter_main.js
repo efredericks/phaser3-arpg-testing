@@ -28,6 +28,7 @@ class shooterMain extends Phaser.Scene {
         this.cameraSpeed = 10;
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
+        this.cameras.main.setBounds(0, 0, 100*16, 100*16);
 
         // tilemap
         this.level = [];
