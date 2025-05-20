@@ -29,12 +29,17 @@ class shooterMain extends Phaser.Scene {
         this.player.setBounce(0.2);
         this.player.setDepth(99);
         this.player.setCollideWorldBounds(true);
+        this.player.health = 10;
 
-        this.enemies = this.physics.add.group({ key: 'sprSand', frame: 0, repeat: 53 });
+        this.enemies = this.physics.add.group({ key: 'sprSand', frame: 0, repeat: 53, health: 500 });
         // this.enemies = this.grp_enemies.getChildren();
         Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: 0, y: 0 });
 
-
+        for (let e of this.enemies.getChildren()) {
+            e.health = 200;
+            e.pushback = -1;
+            e.pushspeed = 50;
+        }
 
         // for (let i = 0; i < 5; i++) {
         //     let e = this.physics.add.sprite(i * 10 + 20, 0, 'sprSand');
@@ -53,12 +58,12 @@ class shooterMain extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
     }
 
-    collision_cb(a, b) {
-        // console.log(a,b);
-    }
+    // collision_cb(a, b) {
+    //     // console.log(a,b);
+    // }
 
-    bulletHit(a, b) {
-    }
+    // bulletHit(a, b) {
+    // }
 
     update() {
         if (this.keyW.isDown) {
@@ -104,6 +109,16 @@ class shooterMain extends Phaser.Scene {
         this.cameras.main.centerOn(this.player.x, this.player.y);
         // this.player.x = this.followPoint.x;
         // this.player.y = this.followPoint.y;
+
+        for (let e of this.enemies.getChildren()) {
+            if (e.pushback > 0) {
+                e.pushback--;
+            } else if (e.pushback == 0) {
+                e.pushback--;
+                e.setVelocity(0, 0);
+            }
+
+        }
     }
     fireBullet(e, vx, vy) {
         let grp;
@@ -122,48 +137,62 @@ class shooterMain extends Phaser.Scene {
 
         if (bullet) {
             bullet.fire(e, vx, vy);//this.reticle);
-            this.physics.add.collider(other, bullet, (enemyHit, bulletHit) => this.enemyHitCallback(enemyHit, bulletHit));
-        }
-    }
-    enemyHitCallback(enemyHit, bulletHit) {
-        // Reduce health of enemy
-        if (bulletHit.active === true && enemyHit.active === true) {
-            // enemyHit.health = enemyHit.health - 1;
-            // console.log('Enemy hp: ', enemyHit.health);
-
-            // // Kill enemy if health <= 0
-            // if (enemyHit.health <= 0) {
-            //     enemyHit.setActive(false).setVisible(false);
-            // }
-
-            // Destroy bullet
-            bulletHit.setActive(false).setVisible(false);
+            this.physics.add.collider(other, bullet, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
         }
     }
 
-    playerHitCallback(playerHit, bulletHit) {
-        // Reduce health of player
-        if (bulletHit.active === true && playerHit.active === true) {
-            // playerHit.health = playerHit.health - 1;
-            // console.log('Player hp: ', playerHit.health);
+    entityHitCallback(_bullet, _entity) {
+        if (_entity.active === true && _bullet.active === true) {
+            _bullet.setActive(false).setVisible(false);
 
-            // // Kill hp sprites and kill player if health <= 0
-            // if (playerHit.health === 2) {
-            //     this.hp3.destroy();
-            // }
-            // else if (playerHit.health === 1) {
-            //     this.hp2.destroy();
-            // }
-            // else {
-            //     this.hp1.destroy();
+            _entity.pushback = 5;
+            _entity.setVelocity(_bullet.vx*_entity.pushspeed, _bullet.vy*_entity.pushspeed);
 
-            //     // Game over state should execute here
-            // }
-
-            // Destroy bullet
-            bulletHit.setActive(false).setVisible(false);
+            _entity.health--;
+            if (_entity.health <= 0) {
+                _entity.setActive(false).setVisible(false);
+            }
         }
     }
+    // enemyHitCallback(enemyHit, bulletHit) {
+    //     // Reduce health of enemy
+    //     if (bulletHit.active === true && enemyHit.active === true) {
+    //         // enemyHit.health = enemyHit.health - 1;
+    //         // console.log('Enemy hp: ', enemyHit.health);
+
+    //         // // Kill enemy if health <= 0
+    //         // if (enemyHit.health <= 0) {
+    //         //     enemyHit.setActive(false).setVisible(false);
+    //         // }
+
+    //         // Destroy bullet
+    //         bulletHit.setActive(false).setVisible(false);
+    //     }
+    // }
+
+    // playerHitCallback(playerHit, bulletHit) {
+    //     // Reduce health of player
+    //     if (bulletHit.active === true && playerHit.active === true) {
+    //         // playerHit.health = playerHit.health - 1;
+    //         // console.log('Player hp: ', playerHit.health);
+
+    //         // // Kill hp sprites and kill player if health <= 0
+    //         // if (playerHit.health === 2) {
+    //         //     this.hp3.destroy();
+    //         // }
+    //         // else if (playerHit.health === 1) {
+    //         //     this.hp2.destroy();
+    //         // }
+    //         // else {
+    //         //     this.hp1.destroy();
+
+    //         //     // Game over state should execute here
+    //         // }
+
+    //         // Destroy bullet
+    //         bulletHit.setActive(false).setVisible(false);
+    //     }
+    // }
 
 }
 
@@ -234,10 +263,15 @@ class Bullet extends Phaser.GameObjects.Image {
         this.xSpeed = 0;
         this.ySpeed = 0;
         this.setSize(12, 12, true);
+        this.vx = 0;
+        this.vy = 0;
     }
 
     fire(shooter, vx, vy) {//target) {
         this.setPosition(shooter.x, shooter.y); // Initial position
+
+        this.vx = vx;
+        this.vy = vy;
 
         this.xSpeed = this.speed * vx;
         this.ySpeed = this.speed * vy;
