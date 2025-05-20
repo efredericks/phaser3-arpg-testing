@@ -19,9 +19,9 @@ var config = {
     pixelArt: true,
     roundPixels: true,
 
-    debug: true,
-    debugShowBody: true,
-    debugShowStaticBody: true,
+    // debug: true,
+    // debugShowBody: true,
+    // debugShowStaticBody: true,
 
 
 };

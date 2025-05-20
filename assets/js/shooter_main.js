@@ -10,6 +10,7 @@ class shooterMain extends Phaser.Scene {
         });
         this.load.image("sprSand", "assets/img/sprSand.png");
         this.load.image("sprGrass", "assets/img/sprGrass.png");
+        this.load.image("bullet", "assets/img/kenney_rpg-urban-pack/Tiles/tile_0060.png");
     }
 
     create() {
@@ -28,8 +29,9 @@ class shooterMain extends Phaser.Scene {
         this.player = this.physics.add.sprite(10, 10, 'sprGrass');
         this.player.setBounce(0.2);
         this.player.setDepth(99);
-        this.player.setCollideWorldBounds(true);
+        // this.player.setCollideWorldBounds(true);
         this.player.health = 10;
+        this.player.fire_cooldown = 0;
 
         this.enemies = this.physics.add.group({ key: 'sprSand', frame: 0, repeat: 53, health: 500 });
         // this.enemies = this.grp_enemies.getChildren();
@@ -87,21 +89,25 @@ class shooterMain extends Phaser.Scene {
         }
 
         // fire keys
-        if (this.cursors.left.isDown) {
-            // this.player.bullets.fireBullet(this.player.x, this.player.y, -1, 0);
-            this.fireBullet(this.player, -1, 0);
-        }
-        else if (this.cursors.right.isDown) {
-            // this.player.bullets.fireBullet(this.player.x, this.player.y, 1, 0);
-            this.fireBullet(this.player, 1, 0);
-        }
-        if (this.cursors.up.isDown) {
-            // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, -1);
-            this.fireBullet(this.player, 0, -1);
-        }
-        else if (this.cursors.down.isDown) {
-            // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, 1);
-            this.fireBullet(this.player, 0, 1);
+        if (this.player.fire_cooldown == 0) {
+            if (this.cursors.left.isDown) {
+                // this.player.bullets.fireBullet(this.player.x, this.player.y, -1, 0);
+                this.fireBullet(this.player, -1, 0);
+            }
+            else if (this.cursors.right.isDown) {
+                // this.player.bullets.fireBullet(this.player.x, this.player.y, 1, 0);
+                this.fireBullet(this.player, 1, 0);
+            }
+            if (this.cursors.up.isDown) {
+                // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, -1);
+                this.fireBullet(this.player, 0, -1);
+            }
+            else if (this.cursors.down.isDown) {
+                // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, 1);
+                this.fireBullet(this.player, 0, 1);
+            }
+        } else {
+            this.player.fire_cooldown--;
         }
 
 
@@ -131,6 +137,7 @@ class shooterMain extends Phaser.Scene {
             grp = this.enemyBullets;
             other = this.player;
         }
+        e.fire_cooldown = 10;
 
         // Get bullet from bullets group
         const bullet = grp.get().setActive(true).setVisible(true);
@@ -146,7 +153,7 @@ class shooterMain extends Phaser.Scene {
             _bullet.setActive(false).setVisible(false);
 
             _entity.pushback = 5;
-            _entity.setVelocity(_bullet.vx*_entity.pushspeed, _bullet.vy*_entity.pushspeed);
+            _entity.setVelocity(_bullet.vx * _entity.pushspeed, _bullet.vy * _entity.pushspeed);
 
             _entity.health--;
             if (_entity.health <= 0) {
@@ -257,7 +264,7 @@ class Bullets extends Phaser.Physics.Arcade.Group {
 class Bullet extends Phaser.GameObjects.Image {
     constructor(scene) {
         super(scene, 0, 0, 'bullet');
-        this.speed = 1;
+        this.speed = 0.15;
         this.born = 0;
         this.direction = 0;
         this.xSpeed = 0;
@@ -268,13 +275,15 @@ class Bullet extends Phaser.GameObjects.Image {
     }
 
     fire(shooter, vx, vy) {//target) {
-        this.setPosition(shooter.x, shooter.y); // Initial position
+        this.setPosition(shooter.x + (vx * shooter.width * 1.25), shooter.y + (vy * shooter.height * 1.25)); // Initial position
+
+        console.log(shooter.body.velocity)
 
         this.vx = vx;
         this.vy = vy;
 
-        this.xSpeed = this.speed * vx;
-        this.ySpeed = this.speed * vy;
+        this.xSpeed =  (shooter.body.velocity.x * 0.0001) + this.speed * vx;
+        this.ySpeed =  (shooter.body.velocity.y * 0.0001) + this.speed * vy;
         // this.direction = Math.atan((target.x - this.x) / (target.y - this.y));
 
         // // Calculate X and y velocity of bullet to moves it from shooter to target
