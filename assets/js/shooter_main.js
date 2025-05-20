@@ -12,6 +12,7 @@ class shooterMain extends Phaser.Scene {
         this.load.image("sprGrass", "assets/img/sprGrass.png");
         this.load.image("bullet", "assets/img/kenney_rpg-urban-pack/Tiles/tile_0060.png");
 
+        this.load.image("tinydungeon-tiles", "assets/img/kenney_tiny-dungeon/Tilemap/tilemap_packed.png");
         this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
         this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
     }
@@ -28,8 +29,31 @@ class shooterMain extends Phaser.Scene {
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
 
+        // tilemap
+        this.level = [];
+        for (let r = 0; r < 100; r++) {
+            let row = [];
+            for (let c = 0; c < 100; c++) {
+                let ch = 0;
+                if (r == 0 || c == 0 || r == 99 || c == 99)
+                    ch = 14;
 
-        this.player = this.physics.add.sprite(10, 10, 'wizard');
+                row.push(ch);
+            }
+            this.level.push(row);
+        }
+
+        this.map = this.make.tilemap({ data: this.level, tileWidth: 16, tileHeight: 16 });
+        this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
+        this.layer = this.map.createLayer(0, this.tiles, 0, 0);
+        this.map.setCollision(14);
+
+
+        let startx = 16*2;
+        let starty = 16*2;
+
+
+        this.player = this.physics.add.sprite(startx, starty, 'wizard');
         this.player.setBounce(0.2);
         this.player.setDepth(99);
         // this.player.setCollideWorldBounds(true);
@@ -38,7 +62,7 @@ class shooterMain extends Phaser.Scene {
 
         this.enemies = this.physics.add.group({ key: 'ghost', frame: 0, repeat: 53, health: 500 });
         // this.enemies = this.grp_enemies.getChildren();
-        Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: 0, y: 0 });
+        Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: startx*2, y: starty*2 });
 
         for (let e of this.enemies.getChildren()) {
             e.health = 5;
@@ -54,6 +78,15 @@ class shooterMain extends Phaser.Scene {
         // Add 2 groups for Bullet objects
         this.playerBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
         this.enemyBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
+
+        // collisions
+        this.physics.add.collider(this.player, this.enemies);//, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
+        this.physics.add.collider(this.player, this.layer);
+        this.physics.add.collider(this.enemies, this.layer);
+
+        // not working?
+        this.physics.add.collider(this.playerBullets, this.layer);
+        this.physics.add.collider(this.enemyBullets, this.layer);
 
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -280,13 +313,13 @@ class Bullet extends Phaser.GameObjects.Image {
     fire(shooter, vx, vy) {//target) {
         this.setPosition(shooter.x + (vx * shooter.width * 1.25), shooter.y + (vy * shooter.height * 1.25)); // Initial position
 
-        console.log(shooter.body.velocity)
+        // console.log(shooter.body.velocity)
 
         this.vx = vx;
         this.vy = vy;
 
-        this.xSpeed =  (shooter.body.velocity.x * 0.0001) + this.speed * vx;
-        this.ySpeed =  (shooter.body.velocity.y * 0.0001) + this.speed * vy;
+        this.xSpeed = (shooter.body.velocity.x * 0.0001) + this.speed * vx;
+        this.ySpeed = (shooter.body.velocity.y * 0.0001) + this.speed * vy;
         // this.direction = Math.atan((target.x - this.x) / (target.y - this.y));
 
         // // Calculate X and y velocity of bullet to moves it from shooter to target
