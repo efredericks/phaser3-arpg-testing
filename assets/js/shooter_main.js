@@ -15,6 +15,7 @@ class shooterMain extends Phaser.Scene {
         this.load.image("tinydungeon-tiles", "assets/img/kenney_tiny-dungeon/Tilemap/tilemap_packed.png");
         this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
         this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
+        this.load.image("ouch", "assets/img/kenney_tiny-dungeon/Tiles/tile_0062.png");
     }
 
     create() {
@@ -178,6 +179,7 @@ class shooterMain extends Phaser.Scene {
                 e.pushback--;
             } else if (e.pushback == 0) {
                 e.pushback--;
+                e.clearTint();
                 e.setVelocity(0, 0);
             }
 
@@ -214,6 +216,7 @@ class shooterMain extends Phaser.Scene {
             _entity.setVelocity(_bullet.vx * _entity.pushspeed, _bullet.vy * _entity.pushspeed);
 
             _entity.health--;
+            _entity.setTint(0xFF0000);
             if (_entity.health <= 0) {
                 _entity.setActive(false).setVisible(false);
             }
