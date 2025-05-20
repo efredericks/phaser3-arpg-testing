@@ -49,8 +49,8 @@ class shooterMain extends Phaser.Scene {
         this.map.setCollision(14);
 
 
-        let startx = 16*2;
-        let starty = 16*2;
+        let startx = 16 * 2;
+        let starty = 16 * 2;
 
 
         this.player = this.physics.add.sprite(startx, starty, 'wizard');
@@ -62,12 +62,16 @@ class shooterMain extends Phaser.Scene {
 
         this.enemies = this.physics.add.group({ key: 'ghost', frame: 0, repeat: 53, health: 500 });
         // this.enemies = this.grp_enemies.getChildren();
-        Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: startx*2, y: starty*2 });
+        Phaser.Actions.GridAlign(this.enemies.getChildren(), { width: 9, cellWidth: 58, cellHeight: 48, x: startx * 2, y: starty * 2 });
 
         for (let e of this.enemies.getChildren()) {
             e.health = 5;
             e.pushback = -1;
             e.pushspeed = 50;
+
+            let _x = Phaser.Math.Between(0, 100 * 16);
+            let _y = Phaser.Math.Between(0, 100 * 16);
+            this.physics.moveToObject(e, { x: _x, y: _y }, 50);
         }
 
         // for (let i = 0; i < 5; i++) {
@@ -81,6 +85,7 @@ class shooterMain extends Phaser.Scene {
 
         // collisions
         this.physics.add.collider(this.player, this.enemies);//, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
+        this.physics.add.collider(this.enemies, this.enemies);
         this.physics.add.collider(this.player, this.layer);
         this.physics.add.collider(this.enemies, this.layer);
 
@@ -153,12 +158,18 @@ class shooterMain extends Phaser.Scene {
         // this.player.y = this.followPoint.y;
 
         for (let e of this.enemies.getChildren()) {
+            if (Math.random() > 0.99) {
+                let _x = Phaser.Math.Between(0, 100 * 16);
+                let _y = Phaser.Math.Between(0, 100 * 16);
+                this.physics.moveToObject(e, { x: _x, y: _y }, 50);
+            }
             if (e.pushback > 0) {
                 e.pushback--;
             } else if (e.pushback == 0) {
                 e.pushback--;
                 e.setVelocity(0, 0);
             }
+
 
         }
     }
