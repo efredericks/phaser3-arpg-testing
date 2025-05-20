@@ -27,3 +27,5 @@ var config = {
 };
 
 var game = new Phaser.Game(config);
+// still getting pushed through - tried 32 and 64
+game.physics.arcade.TILE_BIAS = 32;

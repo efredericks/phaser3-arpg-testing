@@ -82,7 +82,7 @@ class shooterMain extends Phaser.Scene {
 
             let _x = Phaser.Math.Between(0, 100 * 16);
             let _y = Phaser.Math.Between(0, 100 * 16);
-            this.physics.moveToObject(e, { x: _x, y: _y }, 50);
+            this.physics.moveToObject(e, { x: 0,y:0},250);//_x, y: _y }, 50);
         }
 
         // for (let i = 0; i < 5; i++) {
