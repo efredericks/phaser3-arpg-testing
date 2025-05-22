@@ -29,7 +29,7 @@ class shooterMain extends Phaser.Scene {
         this.cameraSpeed = 10;
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
-        this.cameras.main.setBounds(0, 0, 100*16, 100*16);
+        this.cameras.main.setBounds(0, 0, 100 * 16, 100 * 16);
 
         // tilemap
         this.level = [];
@@ -83,7 +83,7 @@ class shooterMain extends Phaser.Scene {
 
             let _x = Phaser.Math.Between(0, 100 * 16);
             let _y = Phaser.Math.Between(0, 100 * 16);
-            this.physics.moveToObject(e, { x: 0,y:0},250);//_x, y: _y }, 50);
+            this.physics.moveToObject(e, { x: _x, y: _y }, 50);
         }
 
         // for (let i = 0; i < 5; i++) {
@@ -96,7 +96,7 @@ class shooterMain extends Phaser.Scene {
         this.enemyBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
 
         // collisions
-        this.physics.add.collider(this.player, this.enemies);//, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
+        this.physics.add.collider(this.player, this.enemies, (_p, _e) => this.entityBumpCallback(_p, _e));
         this.physics.add.collider(this.enemies, this.enemies);
         this.physics.add.collider(this.player, this.layer);
         this.physics.add.collider(this.enemies, this.layer);
@@ -170,10 +170,15 @@ class shooterMain extends Phaser.Scene {
         // this.player.y = this.followPoint.y;
 
         for (let e of this.enemies.getChildren()) {
-            if (Math.random() > 0.99) {
-                let _x = Phaser.Math.Between(0, 100 * 16);
-                let _y = Phaser.Math.Between(0, 100 * 16);
-                this.physics.moveToObject(e, { x: _x, y: _y }, 50);
+            const dist = Phaser.Math.Distance.BetweenPoints(this.player, e);
+            if (dist < 100) {
+                this.physics.moveToObject(e, this.player, 50);
+            } else {
+                if (Math.random() > 0.99) {
+                    let _x = Phaser.Math.Between(0, 100 * 16);
+                    let _y = Phaser.Math.Between(0, 100 * 16);
+                    this.physics.moveToObject(e, { x: _x, y: _y }, 50);
+                }
             }
             if (e.pushback > 0) {
                 e.pushback--;
@@ -182,8 +187,6 @@ class shooterMain extends Phaser.Scene {
                 e.clearTint();
                 e.setVelocity(0, 0);
             }
-
-
         }
     }
     fireBullet(e, vx, vy) {
@@ -206,6 +209,10 @@ class shooterMain extends Phaser.Scene {
             bullet.fire(e, vx, vy);//this.reticle);
             this.physics.add.collider(other, bullet, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
         }
+    }
+
+    entityBumpCallback(a, b) {
+        console.log(a.body.touching, b.body.touching);
     }
 
     entityHitCallback(_bullet, _entity) {

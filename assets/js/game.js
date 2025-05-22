@@ -19,6 +19,8 @@ var config = {
     pixelArt: true,
     roundPixels: true,
 
+    overlapBias: 32,
+
     // debug: true,
     // debugShowBody: true,
     // debugShowStaticBody: true,
