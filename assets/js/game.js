@@ -7,13 +7,18 @@ var config = {
 
     backgroundColor: "black",
     physics: {
-        default: "arcade",
-        arcade: {
-            Gravity: { x: 0, y: 0 }
+        default: "matter",
+        matter: {
+            debug: true,
         }
+        // default: "arcade",
+        // arcade: {
+        //     Gravity: { x: 0, y: 0 }
+        // }
     },
     scene: [
-        shooterMain
+        matterShooterMain
+        // shooterMain
         // endlessMain
     ],
     pixelArt: true,
