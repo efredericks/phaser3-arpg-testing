@@ -85,12 +85,27 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard.setBounce(1);
         this.wizard.setFriction(0, 0, 0);
 
-        // collision groups
-        this.static_collisions = this.matter.world.nextGroup(); // bouncing
-        this.bullet_collisions = this.matter.world.nextGroup(); // shooting
-        this.dynamic_collisions = this.matter.world.nextGroup(); // bumping
+        this.enemyCategory = this.matter.world.nextCategory();
+        this.bulletCategory = this.matter.world.nextCategory();
 
-        this.wizard.setCollisionGroup(this.static_collisions);
+        this.enemies = [];
+        for (let _ = 0; _ < 100; _++) {
+            let _x = Phaser.Math.Between(0, 100 * 16);
+            let _y = Phaser.Math.Between(0, 100 * 16);
+            let e = this.matter.add.image(_x, _y, 'ghost');
+            // e.setCollisionCategory(this.enemyCategory);
+            // e.setCollidesWith([this.wizard, ]);
+            this.enemies.push(e);
+        }
+
+        // collision groups
+        // this.static_collisions = this.matter.world.nextGroup(); // bouncing
+        // this.bullet_collisions = this.matter.world.nextGroup(); // shooting
+        // this.dynamic_collisions = this.matter.world.nextGroup(); // bumping
+
+        // this.wizard.setCollisionGroup(this.static_collisions);
+
+
 
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -101,6 +116,7 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     update(time, delta) {
+        this.wizard.setAngularVelocity(0); // avoid rotation when colliding
         if (this.keyW.isDown) {
             this.wizard.setVelocityY(-3);
         }
@@ -116,7 +132,21 @@ class matterShooterMain extends Phaser.Scene {
         } else {
             this.wizard.setVelocityX(0);
         }
-        this.wizard.setAngularVelocity(0); // avoid rotation when colliding
+        for (let e of this.enemies) {
+            const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
+            if (dist < 120) {
+                if (e.body.position.x < this.wizard.body.position.x)
+                    e.setVelocityX(0.5)
+                else
+                    e.setVelocityX(-0.5)
+                if (e.body.position.y < this.wizard.body.position.y)
+                    e.setVelocityY(0.5)
+                else
+                    e.setVelocityY(-0.5)
+            }
+
+            e.setAngularVelocity(0);
+        }
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 
