@@ -47,6 +47,7 @@ class matterShooterMain extends Phaser.Scene {
                     let r = Math.random();
                     if (r < 0.9) ch = 48;
                     else if (r < 0.95) ch = 49;
+                    else if (r < 0.97) ch = 14;
                     else ch = 42;
                 }
 
@@ -64,6 +65,11 @@ class matterShooterMain extends Phaser.Scene {
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
         this.map.setCollision(14);
 
+        // this.layer.setCollisionByProperty({ collides: true });
+        this.matter.world.convertTilemapLayer(this.layer);
+
+
+
 
         let startx = 16 * 2;
         let starty = 16 * 2;
@@ -74,8 +80,8 @@ class matterShooterMain extends Phaser.Scene {
             width: 14,
             height: 14
         });
-        this.wizard.setVelocity(6, 3);
-        this.wizard.setAngularVelocity(0.01);
+        // this.wizard.setVelocity(6, 3);
+        // this.wizard.setAngularVelocity(0.01);
         this.wizard.setBounce(1);
         this.wizard.setFriction(0, 0, 0);
 
@@ -95,6 +101,22 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     update(time, delta) {
+        if (this.keyW.isDown) {
+            this.wizard.setVelocityY(-3);
+        }
+        else if (this.keyS.isDown) {
+            this.wizard.setVelocityY(3);
+        } else {
+            this.wizard.setVelocityY(0);
+        }
+        if (this.keyA.isDown) {
+            this.wizard.setVelocityX(-3);
+        } else if (this.keyD.isDown) {
+            this.wizard.setVelocityX(3);
+        } else {
+            this.wizard.setVelocityX(0);
+        }
+        this.wizard.setAngularVelocity(0); // avoid rotation when colliding
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 
