@@ -92,10 +92,15 @@ class matterShooterMain extends Phaser.Scene {
         for (let _ = 0; _ < 100; _++) {
             let _x = Phaser.Math.Between(0, 100 * 16);
             let _y = Phaser.Math.Between(0, 100 * 16);
-            let e = this.matter.add.image(_x, _y, 'ghost');
+
+            const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), 'ghost');//, wrapBounds);
+            // enemy.setCollisionCategory(this.enemiesCollisionCategory);
+            // enemy.setCollidesWith([this.shipCollisionCategory, this.bulletCollisionCategory]);
+
+            // let e = this.matter.add.image(_x, _y, 'ghost');
             // e.setCollisionCategory(this.enemyCategory);
             // e.setCollidesWith([this.wizard, ]);
-            this.enemies.push(e);
+            this.enemies.push(enemy);
         }
 
         // collision groups
@@ -133,285 +138,60 @@ class matterShooterMain extends Phaser.Scene {
             this.wizard.setVelocityX(0);
         }
         for (let e of this.enemies) {
-            const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
-            if (dist < 120) {
-                if (e.body.position.x < this.wizard.body.position.x)
-                    e.setVelocityX(0.5)
-                else
-                    e.setVelocityX(-0.5)
-                if (e.body.position.y < this.wizard.body.position.y)
-                    e.setVelocityY(0.5)
-                else
-                    e.setVelocityY(-0.5)
-            }
+            // const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
+            // if (dist < 120) {
+            //     if (e.body.position.x < this.wizard.body.position.x)
+            //         e.setVelocityX(0.5)
+            //     else
+            //         e.setVelocityX(-0.5)
+            //     if (e.body.position.y < this.wizard.body.position.y)
+            //         e.setVelocityY(0.5)
+            //     else
+            //         e.setVelocityY(-0.5)
+            // }
 
-            e.setAngularVelocity(0);
+            // e.setAngularVelocity(0);
         }
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
-
-    // collision_cb(a, b) {
-    //     // console.log(a,b);
-    // }
-
-    // bulletHit(a, b) {
-    // }
-
-    // update() {
-    //     if (this.keyW.isDown) {
-    //         this.player.setVelocityY(-160);
-    //         // this.player.y -= this.cameraSpeed;
-    //     }
-    //     else if (this.keyS.isDown) {
-    //         // this.player.y += this.cameraSpeed;
-    //         this.player.setVelocityY(160);
-    //     } else {
-    //         this.player.setVelocityY(0);
-    //     }
-    //     if (this.keyA.isDown) {
-    //         // this.player.x -= this.cameraSpeed;
-    //         this.player.setVelocityX(-160);
-    //     } else if (this.keyD.isDown) {
-    //         this.player.setVelocityX(160);
-    //         // this.player.x += this.cameraSpeed;
-    //     } else {
-    //         this.player.setVelocityX(0);
-    //     }
-
-    //     // fire keys
-    //     if (this.player.fire_cooldown == 0) {
-    //         if (this.cursors.left.isDown) {
-    //             // this.player.bullets.fireBullet(this.player.x, this.player.y, -1, 0);
-    //             this.fireBullet(this.player, -1, 0);
-    //         }
-    //         else if (this.cursors.right.isDown) {
-    //             // this.player.bullets.fireBullet(this.player.x, this.player.y, 1, 0);
-    //             this.fireBullet(this.player, 1, 0);
-    //         }
-    //         if (this.cursors.up.isDown) {
-    //             // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, -1);
-    //             this.fireBullet(this.player, 0, -1);
-    //         }
-    //         else if (this.cursors.down.isDown) {
-    //             // this.player.bullets.fireBullet(this.player.x, this.player.y, 0, 1);
-    //             this.fireBullet(this.player, 0, 1);
-    //         }
-    //     } else {
-    //         this.player.fire_cooldown--;
-    //     }
-
-
-    //     // center camera
-    //     this.cameras.main.centerOn(this.player.x, this.player.y);
-    //     // this.player.x = this.followPoint.x;
-    //     // this.player.y = this.followPoint.y;
-
-    //     for (let e of this.enemies.getChildren()) {
-    //         const dist = Phaser.Math.Distance.BetweenPoints(this.player, e);
-    //         if (dist < 100) {
-    //             this.physics.moveToObject(e, this.player, 50);
-    //         } else {
-    //             if (Math.random() > 0.99) {
-    //                 let _x = Phaser.Math.Between(0, 100 * 16);
-    //                 let _y = Phaser.Math.Between(0, 100 * 16);
-    //                 this.physics.moveToObject(e, { x: _x, y: _y }, 50);
-    //             }
-    //         }
-    //         if (e.pushback > 0) {
-    //             e.pushback--;
-    //         } else if (e.pushback == 0) {
-    //             e.pushback--;
-    //             e.clearTint();
-    //             e.setVelocity(0, 0);
-    //         }
-    //     }
-    // }
-    // fireBullet(e, vx, vy) {
-    //     let grp;
-    //     let other;
-    //     if (e === this.player) {
-    //         grp = this.playerBullets;
-    //         other = this.enemies;
-    //     }
-    //     else {
-    //         grp = this.enemyBullets;
-    //         other = this.player;
-    //     }
-    //     e.fire_cooldown = 10;
-
-    //     // Get bullet from bullets group
-    //     const bullet = grp.get().setActive(true).setVisible(true);
-
-    //     if (bullet) {
-    //         bullet.fire(e, vx, vy);//this.reticle);
-    //         this.physics.add.collider(other, bullet, (_bullet, _entity) => this.entityHitCallback(_bullet, _entity));
-    //     }
-    // }
-
-    // entityBumpCallback(a, b) {
-    //     console.log(a.body.touching, b.body.touching);
-    // }
-
-    // entityHitCallback(_bullet, _entity) {
-    //     if (_entity.active === true && _bullet.active === true) {
-    //         _bullet.setActive(false).setVisible(false);
-
-    //         _entity.pushback = 5;
-    //         _entity.setVelocity(_bullet.vx * _entity.pushspeed, _bullet.vy * _entity.pushspeed);
-
-    //         _entity.health--;
-    //         _entity.setTint(0xFF0000);
-    //         if (_entity.health <= 0) {
-    //             _entity.setActive(false).setVisible(false);
-    //         }
-    //     }
-    // }
-    // enemyHitCallback(enemyHit, bulletHit) {
-    //     // Reduce health of enemy
-    //     if (bulletHit.active === true && enemyHit.active === true) {
-    //         // enemyHit.health = enemyHit.health - 1;
-    //         // console.log('Enemy hp: ', enemyHit.health);
-
-    //         // // Kill enemy if health <= 0
-    //         // if (enemyHit.health <= 0) {
-    //         //     enemyHit.setActive(false).setVisible(false);
-    //         // }
-
-    //         // Destroy bullet
-    //         bulletHit.setActive(false).setVisible(false);
-    //     }
-    // }
-
-    // playerHitCallback(playerHit, bulletHit) {
-    //     // Reduce health of player
-    //     if (bulletHit.active === true && playerHit.active === true) {
-    //         // playerHit.health = playerHit.health - 1;
-    //         // console.log('Player hp: ', playerHit.health);
-
-    //         // // Kill hp sprites and kill player if health <= 0
-    //         // if (playerHit.health === 2) {
-    //         //     this.hp3.destroy();
-    //         // }
-    //         // else if (playerHit.health === 1) {
-    //         //     this.hp2.destroy();
-    //         // }
-    //         // else {
-    //         //     this.hp1.destroy();
-
-    //         //     // Game over state should execute here
-    //         // }
-
-    //         // Destroy bullet
-    //         bulletHit.setActive(false).setVisible(false);
-    //     }
-    // }
-
 }
 
+class Enemy extends Phaser.Physics.Matter.Sprite {
+    constructor(world, x, y, texture, bodyOptions) {
+        super(world, x, y, texture, null, { plugin: bodyOptions });
 
-/*
-class Bullet extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
-        super(scene, x, y, 'bullet');
-        this.speed = 300;
-        // console.log(this.scene.player);
-    }
+        // this.play('eyes');
 
-    fire(x, y, vx, vy) {
-        this.body.reset(x, y);
+        this.setFrictionAir(0);
 
-        this.lifetime = 20;
+        this.scene.add.existing(this);
 
-        this.setActive(true);
-        this.setVisible(true);
+        const angle = Phaser.Math.Between(0, 360);
+        const speed = Phaser.Math.FloatBetween(1, 3);
 
-        this.setVelocityX(vx * this.speed);
-        this.setVelocityY(vy * this.speed);
+        // this.setAngle(angle);
 
-        // console.log(vx, vy, this.speed)
+        // this.setAngularVelocity(Phaser.Math.FloatBetween(-0.05, 0.05));
+
+        this.setVelocityX(speed * Math.cos(angle));
+        this.setVelocityY(speed * Math.sin(angle));
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        this.lifetime--;
-        // if (this.y <= -32 || this.x <= -32 || this.x > 500 || this.y > 500) {
-        if (this.lifetime <= 0) {
-            this.setActive(false);
-            this.setVisible(false);
+        const dist = Math.sqrt((this.body.position.x - this.scene.wizard.x) ** 2 + (this.body.position.y - this.scene.wizard.y) ** 2);
+        if (dist < 120) {
+            if (this.body.position.x < this.scene.wizard.body.position.x)
+                this.setVelocityX(0.5)
+            else
+                this.setVelocityX(-0.5)
+            if (this.body.position.y < this.scene.wizard.body.position.y)
+                this.setVelocityY(0.5)
+            else
+                this.setVelocityY(-0.5)
         }
+
+        this.setAngularVelocity(0);
     }
 }
-
-class Bullets extends Phaser.Physics.Arcade.Group {
-    constructor(scene) {
-        super(scene.physics.world, scene);
-
-        this.createMultiple({
-            frameQuantity: 5,
-            key: 'bullet',
-            active: false,
-            visible: false,
-            classType: Bullet
-        });
-    }
-
-    fireBullet(x, y, vx, vy) {
-        const bullet = this.getFirstDead(false);
-
-        if (bullet) {
-            bullet.fire(x, y, vx, vy);
-        }
-    }
-}
-*/
-
-// class Bullet extends Phaser.GameObjects.Image {
-//     constructor(scene) {
-//         super(scene, 0, 0, 'bullet');
-//         this.speed = 0.15;
-//         this.born = 0;
-//         this.direction = 0;
-//         this.xSpeed = 0;
-//         this.ySpeed = 0;
-//         this.setSize(12, 12, true);
-//         this.vx = 0;
-//         this.vy = 0;
-//     }
-
-//     fire(shooter, vx, vy) {//target) {
-//         this.setPosition(shooter.x + (vx * shooter.width * 1.25), shooter.y + (vy * shooter.height * 1.25)); // Initial position
-
-//         // console.log(shooter.body.velocity)
-
-//         this.vx = vx;
-//         this.vy = vy;
-
-//         this.xSpeed = (shooter.body.velocity.x * 0.0001) + this.speed * vx;
-//         this.ySpeed = (shooter.body.velocity.y * 0.0001) + this.speed * vy;
-//         // this.direction = Math.atan((target.x - this.x) / (target.y - this.y));
-
-//         // // Calculate X and y velocity of bullet to moves it from shooter to target
-//         // if (target.y >= this.y) {
-//         //     this.xSpeed = this.speed * Math.sin(this.direction);
-//         //     this.ySpeed = this.speed * Math.cos(this.direction);
-//         // }
-//         // else {
-//         //     this.xSpeed = -this.speed * Math.sin(this.direction);
-//         //     this.ySpeed = -this.speed * Math.cos(this.direction);
-//         // }
-
-//         // this.rotation = shooter.rotation; // angle bullet with shooters rotation
-//         this.born = 0; // Time since new bullet spawned
-//     }
-
-//     update(time, delta) {
-//         this.x += this.xSpeed * delta;
-//         this.y += this.ySpeed * delta;
-//         this.born += delta;
-//         if (this.born > 1800) {
-//             this.setActive(false);
-//             this.setVisible(false);
-//         }
-//     }
-// }
