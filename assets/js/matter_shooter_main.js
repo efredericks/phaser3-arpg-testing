@@ -107,7 +107,7 @@ class matterShooterMain extends Phaser.Scene {
 
         this.bullets = [];
         for (let i = 0; i < 64; i++) {
-            const bullet = new Bullet(this.matter.world, 0, 0, 'bullet', null, { isSensor: true });//, wrapBounds);
+            const bullet = new Bullet(this.matter.world, -64, -64, 'bullet', null, { isSensor: true });//, wrapBounds);
 
             bullet.setCollisionCategory(this.bulletCollisionCategory);
             bullet.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
@@ -138,6 +138,8 @@ class matterShooterMain extends Phaser.Scene {
             }
 
         });
+
+        this.text_debug = this.add.text(16, 16, `Enemies: ${this.enemies.length}`).setColor("#000");
     }
 
     spawnEnemy(key) {
@@ -203,6 +205,7 @@ class matterShooterMain extends Phaser.Scene {
         if (this.enemies.length < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
             this.enemies.push(this.spawnEnemy('ghost'));
         }
+        this.text_debug.setText(`Enemies: ${this.enemies.length}`);
 
 
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
