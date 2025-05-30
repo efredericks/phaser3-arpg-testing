@@ -64,8 +64,9 @@ class matterShooterMain extends Phaser.Scene {
         this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
         this.map.setCollision(14);
+        console.log(this.map)
 
-        // this.layer.setCollisionByProperty({ collides: true });
+        this.layer.setCollisionByProperty({ collides: true });
         this.matter.world.convertTilemapLayer(this.layer);
 
 
@@ -73,6 +74,10 @@ class matterShooterMain extends Phaser.Scene {
 
         let startx = 16 * 2;
         let starty = 16 * 2;
+
+        this.enemiesCollisionCategory = this.matter.world.nextCategory();
+        this.wizardCollisionCategory = this.matter.world.nextCategory();
+        this.bulletCollisionCategory = this.matter.world.nextCategory();
 
         this.wizard = this.matter.add.image(200, 50, 'wizard');
         this.wizard.setBody({
@@ -84,23 +89,34 @@ class matterShooterMain extends Phaser.Scene {
         // this.wizard.setAngularVelocity(0.01);
         this.wizard.setBounce(1);
         this.wizard.setFriction(0, 0, 0);
+        this.wizard.setCollisionCategory(this.wizardCollisionCategory);
+        this.wizard.setCollidesWith([this.enemiesCollisionCategory]);
 
-        this.enemyCategory = this.matter.world.nextCategory();
-        this.bulletCategory = this.matter.world.nextCategory();
 
         this.enemies = [];
-        for (let _ = 0; _ < 100; _++) {
+        for (let _ = 0; _ < 10; _++) {
             let _x = Phaser.Math.Between(0, 100 * 16);
             let _y = Phaser.Math.Between(0, 100 * 16);
 
             const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), 'ghost');//, wrapBounds);
-            // enemy.setCollisionCategory(this.enemiesCollisionCategory);
-            // enemy.setCollidesWith([this.shipCollisionCategory, this.bulletCollisionCategory]);
+            enemy.setCollisionCategory(this.enemiesCollisionCategory);
+            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory]);
 
             // let e = this.matter.add.image(_x, _y, 'ghost');
-            // e.setCollisionCategory(this.enemyCategory);
-            // e.setCollidesWith([this.wizard, ]);
+            enemy.setCollisionCategory(this.enemiesCollisionCategory);
+            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory]);
             this.enemies.push(enemy);
+        }
+
+        this.bullets = [];
+        for (let i = 0; i < 64; i++) {
+            const bullet = new Bullet(this.matter.world, 0, 0, 'bullet');//, wrapBounds);
+
+            bullet.setCollisionCategory(this.bulletCollisionCategory);
+            bullet.setCollidesWith([this.enemiesCollisionCategory, ]);
+            bullet.setOnCollide(this.bulletVsEnemy);
+
+            this.bullets.push(bullet);
         }
 
         // collision groups
@@ -118,6 +134,28 @@ class matterShooterMain extends Phaser.Scene {
         this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.cursors = this.input.keyboard.createCursorKeys();
+
+        this.input.keyboard.on('keydown-SPACE', () => {
+            const bullet = this.bullets.find(bullet => !bullet.active);
+
+            if (bullet) {
+                bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
+            }
+
+        });
+    }
+
+    bulletVsEnemy(collisionData) {
+        const bullet = collisionData.bodyA.gameObject;
+        const enemy = collisionData.bodyB.gameObject;
+
+        bullet.setActive(false);
+        bullet.setVisible(false);
+        bullet.world.remove(bullet.body, true);
+
+        enemy.setActive(false);
+        enemy.setVisible(false);
+        enemy.world.remove(enemy.body, true);
     }
 
     update(time, delta) {
@@ -193,5 +231,47 @@ class Enemy extends Phaser.Physics.Matter.Sprite {
         }
 
         this.setAngularVelocity(0);
+    }
+}
+
+class Bullet extends Phaser.Physics.Matter.Sprite {
+    lifespan;
+
+    constructor(world, x, y, texture, bodyOptions) {
+        super(world, x, y, texture, null, { plugin: bodyOptions });
+
+        this.setFrictionAir(0);
+        this.setFixedRotation();
+        this.setActive(false);
+
+        this.scene.add.existing(this);
+
+        this.world.remove(this.body, true);
+    }
+
+    fire(x, y, angle, speed) {
+        this.world.add(this.body);
+
+        this.setPosition(x, y);
+        this.setActive(true);
+        this.setVisible(true);
+
+        this.setRotation(angle);
+        this.setVelocityX(speed * Math.cos(angle));
+        this.setVelocityY(speed * Math.sin(angle));
+
+        this.lifespan = 1000;
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+
+        this.lifespan -= delta;
+
+        if (this.lifespan <= 0) {
+            this.setActive(false);
+            this.setVisible(false);
+            this.world.remove(this.body, true);
+        }
     }
 }
