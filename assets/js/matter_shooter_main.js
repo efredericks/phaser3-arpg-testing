@@ -1,3 +1,5 @@
+const MAX_ENEMIES_PER_ROOM = 100;
+
 class matterShooterMain extends Phaser.Scene {
     constructor() {
         super({ key: "matterShooterMain" });
@@ -99,13 +101,7 @@ class matterShooterMain extends Phaser.Scene {
 
         this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
-            let _x = Phaser.Math.Between(0, 100 * 16);
-            let _y = Phaser.Math.Between(0, 100 * 16);
-
-            const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), 'ghost', null, { isSensor: true });//, wrapBounds);
-            enemy.setCollisionCategory(this.enemiesCollisionCategory);
-            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
-
+            const enemy = this.spawnEnemy('ghost');
             this.enemies.push(enemy);
         }
 
@@ -144,6 +140,15 @@ class matterShooterMain extends Phaser.Scene {
         });
     }
 
+    spawnEnemy(key) {
+        let _x = Phaser.Math.Between(0, 100 * 16);
+        let _y = Phaser.Math.Between(0, 100 * 16);
+
+        const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
+        enemy.setCollisionCategory(this.enemiesCollisionCategory);
+        enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
+    }
+
     bulletVsEnemy(collisionData) {
         let bullet = collisionData.bodyA.gameObject;
         let enemy = collisionData.bodyB.gameObject;
@@ -179,21 +184,27 @@ class matterShooterMain extends Phaser.Scene {
         } else {
             this.wizard.setVelocityX(0);
         }
-        for (let e of this.enemies) {
-            // const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
-            // if (dist < 120) {
-            //     if (e.body.position.x < this.wizard.body.position.x)
-            //         e.setVelocityX(0.5)
-            //     else
-            //         e.setVelocityX(-0.5)
-            //     if (e.body.position.y < this.wizard.body.position.y)
-            //         e.setVelocityY(0.5)
-            //     else
-            //         e.setVelocityY(-0.5)
-            // }
+        // for (let e of this.enemies) {
+        // const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
+        // if (dist < 120) {
+        //     if (e.body.position.x < this.wizard.body.position.x)
+        //         e.setVelocityX(0.5)
+        //     else
+        //         e.setVelocityX(-0.5)
+        //     if (e.body.position.y < this.wizard.body.position.y)
+        //         e.setVelocityY(0.5)
+        //     else
+        //         e.setVelocityY(-0.5)
+        // }
 
-            // e.setAngularVelocity(0);
+        // e.setAngularVelocity(0);
+        // }
+
+        if (this.enemies.length < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
+            this.enemies.push(this.spawnEnemy('ghost'));
         }
+
+
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 }
