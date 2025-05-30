@@ -145,17 +145,21 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     bulletVsEnemy(collisionData) {
-        let bullet = collisionData.bodyB.gameObject;
-        let enemy = collisionData.bodyA.gameObject;
+        let bullet = collisionData.bodyA.gameObject;
+        let enemy = collisionData.bodyB.gameObject;
 
         console.log(bullet, enemy)
-        bullet.setActive(false);
-        bullet.setVisible(false);
-        bullet.world.remove(bullet.body, true);
 
-        enemy.setActive(false);
-        enemy.setVisible(false);
-        enemy.world.remove(enemy.body, true);
+        if ("type" in bullet && bullet.type == "Sprite") {
+            bullet.setActive(false);
+            bullet.setVisible(false);
+            bullet.world.remove(bullet.body, true);
+        }
+        if ("type" in enemy && enemy.type == "Sprite") {
+            enemy.setActive(false);
+            enemy.setVisible(false);
+            enemy.world.remove(enemy.body, true);
+        }
     }
 
     update(time, delta) {
