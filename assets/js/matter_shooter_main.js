@@ -28,6 +28,11 @@ class matterShooterMain extends Phaser.Scene {
             repeat: -1
         });
 
+        this.worldCollisionCategory = this.matter.world.nextCategory();
+        this.enemiesCollisionCategory = this.matter.world.nextCategory();
+        this.wizardCollisionCategory = this.matter.world.nextCategory();
+        this.bulletCollisionCategory = this.matter.world.nextCategory();
+
 
 
         this.cameraSpeed = 10;
@@ -63,23 +68,22 @@ class matterShooterMain extends Phaser.Scene {
         this.map = this.make.tilemap({ data: this.level, tileWidth: 16, tileHeight: 16 });
         this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
-        this.map.setCollision(14);
-        console.log(this.map)
 
+        this.map.setCollision(14);
         this.layer.setCollisionByProperty({ collides: true });
         this.matter.world.convertTilemapLayer(this.layer);
-
-
+        this.layer.forEachTile(tile => {
+            if (tile.physics && tile.physics.matterBody) {
+                tile.physics.matterBody.setCollisionCategory(this.worldCollisionCategory); // example
+                tile.physics.matterBody.setCollidesWith([this.enemiesCollisionCategory, this.bulletCollisionCategory, this.wizardCollisionCategory]); // example
+            }
+        });
 
 
         let startx = 16 * 2;
         let starty = 16 * 2;
 
-        this.enemiesCollisionCategory = this.matter.world.nextCategory();
-        this.wizardCollisionCategory = this.matter.world.nextCategory();
-        this.bulletCollisionCategory = this.matter.world.nextCategory();
-
-        this.wizard = this.matter.add.image(200, 50, 'wizard');
+        this.wizard = this.matter.add.image(200, 50, 'wizard', null, { isSensor: true });
         this.wizard.setBody({
             type: 'rectangle',
             width: 14,
@@ -90,7 +94,7 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard.setBounce(1);
         this.wizard.setFriction(0, 0, 0);
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
-        this.wizard.setCollidesWith([this.enemiesCollisionCategory]);
+        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
 
 
         this.enemies = [];
@@ -98,22 +102,19 @@ class matterShooterMain extends Phaser.Scene {
             let _x = Phaser.Math.Between(0, 100 * 16);
             let _y = Phaser.Math.Between(0, 100 * 16);
 
-            const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), 'ghost');//, wrapBounds);
+            const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), 'ghost', null, { isSensor: true });//, wrapBounds);
             enemy.setCollisionCategory(this.enemiesCollisionCategory);
-            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory]);
+            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
 
-            // let e = this.matter.add.image(_x, _y, 'ghost');
-            enemy.setCollisionCategory(this.enemiesCollisionCategory);
-            enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory]);
             this.enemies.push(enemy);
         }
 
         this.bullets = [];
         for (let i = 0; i < 64; i++) {
-            const bullet = new Bullet(this.matter.world, 0, 0, 'bullet');//, wrapBounds);
+            const bullet = new Bullet(this.matter.world, 0, 0, 'bullet', null, { isSensor: true });//, wrapBounds);
 
             bullet.setCollisionCategory(this.bulletCollisionCategory);
-            bullet.setCollidesWith([this.enemiesCollisionCategory, ]);
+            bullet.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
             bullet.setOnCollide(this.bulletVsEnemy);
 
             this.bullets.push(bullet);
@@ -125,8 +126,6 @@ class matterShooterMain extends Phaser.Scene {
         // this.dynamic_collisions = this.matter.world.nextGroup(); // bumping
 
         // this.wizard.setCollisionGroup(this.static_collisions);
-
-
 
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -146,9 +145,10 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     bulletVsEnemy(collisionData) {
-        const bullet = collisionData.bodyA.gameObject;
-        const enemy = collisionData.bodyB.gameObject;
+        let bullet = collisionData.bodyB.gameObject;
+        let enemy = collisionData.bodyA.gameObject;
 
+        console.log(bullet, enemy)
         bullet.setActive(false);
         bullet.setVisible(false);
         bullet.world.remove(bullet.body, true);
