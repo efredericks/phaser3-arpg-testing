@@ -1,4 +1,5 @@
 const MAX_ENEMIES_PER_ROOM = 100;
+const HALF_PI = Math.PI / 2.;
 
 class matterShooterMain extends Phaser.Scene {
     constructor() {
@@ -98,6 +99,12 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
 
+        // data
+        this.wizard.setDataEnabled();
+        this.wizard.data.set('HP', 10);
+        this.wizard.data.set('maxHP', 10);
+        this.wizard.data.set('fire_cooldown', 0);
+
 
         this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
@@ -130,14 +137,14 @@ class matterShooterMain extends Phaser.Scene {
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        this.input.keyboard.on('keydown-SPACE', () => {
-            const bullet = this.bullets.find(bullet => !bullet.active);
+        // this.input.keyboard.on('keydown-SPACE', () => {
+        //     const bullet = this.bullets.find(bullet => !bullet.active);
 
-            if (bullet) {
-                bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
-            }
+        //     if (bullet) {
+        //         bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
+        //     }
 
-        });
+        // });
 
         this.text_debug = this.add.text(16, 16, `Enemies: ${this.enemies.length}`).setColor("#000");
     }
@@ -186,6 +193,44 @@ class matterShooterMain extends Phaser.Scene {
         } else {
             this.wizard.setVelocityX(0);
         }
+
+        let fc = this.wizard.data.get('fire_cooldown');
+        if (fc == 0) {
+            let angle = null;
+            if (this.cursors.left.isDown) {
+                angle = Math.PI;
+            }
+            else if (this.cursors.right.isDown) {
+                angle = 0;
+            }
+            if (this.cursors.up.isDown) {
+                angle = -HALF_PI;
+            }
+            else if (this.cursors.down.isDown) {
+                angle = HALF_PI;
+            }
+            if (angle != null) {
+                this.wizard.data.set('fire_cooldown', 10);
+                const bullet = this.bullets.find(bullet => !bullet.active);
+                if (bullet) {
+                    bullet.fire(this.wizard.x, this.wizard.y, angle, 5);
+                }
+            }
+        } else {
+            fc--;
+            this.wizard.data.set('fire_cooldown', fc);
+        }
+
+        // this.input.keyboard.on('keydown-SPACE', () => {
+        //     const bullet = this.bullets.find(bullet => !bullet.active);
+
+        //     if (bullet) {
+        //         bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
+        //     }
+
+        // });
+
+
         // for (let e of this.enemies) {
         // const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
         // if (dist < 120) {
