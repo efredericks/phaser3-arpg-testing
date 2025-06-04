@@ -289,8 +289,13 @@ class matterShooterMain extends Phaser.Scene {
         // this.wizard.hp.y = this.wizard.y - TILE_SIZE;
         // this.wizard.hp.draw(this.wizard.data.get('HP') / this.wizard.data.get('maxHP'));
 
-        for (let me of this.moving_entities) {
-            me.draw();
+        for (let i = this.moving_entities.length - 1; i >= 0; i--) {
+            let me = this.moving_entities[i];
+            if (!me.active) { // cull
+                this.moving_entities.splice(i, 1);
+            } else {
+                me.draw();
+            }
         }
 
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
