@@ -1,5 +1,13 @@
+const SPRITE_DATA = {
+    'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10 },
+    'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20 },
+};
+
 const MAX_ENEMIES_PER_ROOM = 100;
 const HALF_PI = Math.PI / 2.;
+const TILE_SIZE = 16;
+const HALF_TILE = TILE_SIZE / 2;
+const QUARTER_TILE = TILE_SIZE / 4;
 
 class matterShooterMain extends Phaser.Scene {
     constructor() {
@@ -8,8 +16,8 @@ class matterShooterMain extends Phaser.Scene {
 
     preload() {
         this.load.spritesheet("sprWater", "assets/img/sprWater.png", {
-            frameWidth: 16,
-            frameHeight: 16
+            frameWidth: TILE_SIZE,
+            frameHeight: TILE_SIZE
         });
         this.load.image("sprSand", "assets/img/sprSand.png");
         this.load.image("sprGrass", "assets/img/sprGrass.png");
@@ -22,7 +30,7 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     create() {
-        this.matter.world.setBounds(0, 0, 100 * 16, 100 * 16).disableGravity();
+        this.matter.world.setBounds(0, 0, 100 * TILE_SIZE, 100 * TILE_SIZE).disableGravity();
 
         this.anims.create({
             key: "sprWater",
@@ -41,7 +49,7 @@ class matterShooterMain extends Phaser.Scene {
         this.cameraSpeed = 10;
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
-        this.cameras.main.setBounds(0, 0, 100 * 16, 100 * 16);
+        this.cameras.main.setBounds(0, 0, 100 * TILE_SIZE, 100 * TILE_SIZE);
 
         // tilemap
         this.level = [];
@@ -68,7 +76,7 @@ class matterShooterMain extends Phaser.Scene {
             this.level.push(row);
         }
 
-        this.map = this.make.tilemap({ data: this.level, tileWidth: 16, tileHeight: 16 });
+        this.map = this.make.tilemap({ data: this.level, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
         this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
 
@@ -83,34 +91,38 @@ class matterShooterMain extends Phaser.Scene {
         });
 
 
-        let startx = 16 * 2;
-        let starty = 16 * 2;
-
-        this.wizard = this.matter.add.image(200, 50, 'wizard', null, { isSensor: true });
-        this.wizard.setBody({
-            type: 'rectangle',
-            width: 14,
-            height: 14
-        });
-        // this.wizard.setVelocity(6, 3);
-        // this.wizard.setAngularVelocity(0.01);
-        this.wizard.setBounce(1);
-        this.wizard.setFriction(0, 0, 0);
-        this.wizard.setCollisionCategory(this.wizardCollisionCategory);
-        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
-
-        // data
-        this.wizard.setDataEnabled();
-        this.wizard.data.set('HP', 10);
-        this.wizard.data.set('maxHP', 10);
-        this.wizard.data.set('fire_cooldown', 0);
-
+        let startx = TILE_SIZE * 2;
+        let starty = TILE_SIZE * 2;
 
         this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
             const enemy = this.spawnEnemy('ghost');
             this.enemies.push(enemy);
         }
+
+        this.wizard = new MovingEntity(this.matter.world, 200, 50, 'wizard', {isSensor: true});
+        // this.wizard = this.matter.add.image(200, 50, 'wizard', null, { isSensor: true });
+        // this.wizard.setBody({
+        //     type: 'rectangle',
+        //     width: TILE_SIZE - 2,
+        //     height: TILE_SIZE - 2
+        // });
+        // this.wizard.setVelocity(6, 3);
+        // this.wizard.setAngularVelocity(0.01);
+        // this.wizard.setBounce(1);
+        // this.wizard.setFriction(0, 0, 0);
+        this.wizard.setCollisionCategory(this.wizardCollisionCategory);
+        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
+
+        // data
+        // this.wizard.setDataEnabled();
+        // this.wizard.data.set('HP', 10);
+        // this.wizard.data.set('maxHP', 10);
+        // this.wizard.data.set('fire_cooldown', 0);
+        // this.wizard.hp = new HealthBar(this, this.wizard.x - TILE_SIZE, this.wizard.y - HALF_TILE);
+
+
+
 
         this.bullets = [];
         for (let i = 0; i < 64; i++) {
@@ -146,12 +158,12 @@ class matterShooterMain extends Phaser.Scene {
 
         // });
 
-        this.text_debug = this.add.text(16, 16, `Enemies: ${this.enemies.length}`).setColor("#000");
+        this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.enemies.length}`).setColor("#000");
     }
 
     spawnEnemy(key) {
-        let _x = Phaser.Math.Between(0, 100 * 16);
-        let _y = Phaser.Math.Between(0, 100 * 16);
+        let _x = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
+        let _y = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
 
         const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
@@ -162,11 +174,16 @@ class matterShooterMain extends Phaser.Scene {
         let bullet = collisionData.bodyA.gameObject;
         let enemy = collisionData.bodyB.gameObject;
 
-        console.log(bullet, enemy)
+        // console.log(bullet, enemy)
 
         if ("type" in bullet && bullet.type == "Sprite") {
             bullet.setActive(false);
             bullet.setVisible(false);
+
+            if (bullet.hp) {
+                bullet.hp.destroy();
+                // bullet.world.remove(bullet.hp, true);
+            }
             bullet.world.remove(bullet.body, true);
         }
         if ("type" in enemy && enemy.type == "Sprite") {
@@ -177,19 +194,19 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     update(time, delta) {
-        this.wizard.setAngularVelocity(0); // avoid rotation when colliding
+        // this.wizard.setAngularVelocity(0); // avoid rotation when colliding
         if (this.keyW.isDown) {
-            this.wizard.setVelocityY(-3);
+            this.wizard.setVelocityY(-this.wizard.data.get('speed'));
         }
         else if (this.keyS.isDown) {
-            this.wizard.setVelocityY(3);
+            this.wizard.setVelocityY(this.wizard.data.get('speed'));
         } else {
             this.wizard.setVelocityY(0);
         }
         if (this.keyA.isDown) {
-            this.wizard.setVelocityX(-3);
+            this.wizard.setVelocityX(-this.wizard.data.get('speed'));
         } else if (this.keyD.isDown) {
-            this.wizard.setVelocityX(3);
+            this.wizard.setVelocityX(this.wizard.data.get('speed'));
         } else {
             this.wizard.setVelocityX(0);
         }
@@ -253,15 +270,57 @@ class matterShooterMain extends Phaser.Scene {
         this.text_debug.setText(`Enemies: ${this.enemies.length}`);
 
 
+        // this.wizard.hp.x = this.wizard.x - HALF_TILE;
+        // this.wizard.hp.y = this.wizard.y - TILE_SIZE;
+        // this.wizard.hp.draw(this.wizard.data.get('HP') / this.wizard.data.get('maxHP'));
+
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 }
 
-class Enemy extends Phaser.Physics.Matter.Sprite {
+class MovingEntity extends Phaser.Physics.Matter.Sprite {
+    constructor(world, x, y, texture, bodyOptions) {
+        super(world, x, y, texture, null, { plugin: bodyOptions });
+
+        console.assert(texture in SPRITE_DATA, `Missing ${texture} in SPRITE_DATA dictionary`);
+
+        // this.play('eyes');
+        this.setFriction(0, 0, 0);
+
+        this.setBody({
+            type: 'rectangle',
+            width: TILE_SIZE - 2,
+            height: TILE_SIZE - 2
+        });
+
+        this.setDataEnabled();
+        this.data.set('HP', SPRITE_DATA[texture].hp);
+        this.data.set('maxHP', SPRITE_DATA[texture].hp);
+        this.data.set('fire_cooldown', 0);
+        this.data.set('fire_cooldown_max', SPRITE_DATA[texture].fire_cooldown_max);
+        this.data.set('speed', SPRITE_DATA[texture].speed);
+
+        this.scene.add.existing(this);
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+
+        this.setAngularVelocity(0);
+    }
+
+}
+
+class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
     constructor(world, x, y, texture, bodyOptions) {
         super(world, x, y, texture, null, { plugin: bodyOptions });
 
         // this.play('eyes');
+        this.setDataEnabled();
+        this.data.set('HP', 10);
+        this.data.set('maxHP', 10);
+        this.data.set('fire_cooldown', 0);
+        // this.hp = new HealthBar(this.scene, x - TILE_SIZE, y - HALF_TILE);
 
         this.setFrictionAir(0);
 
@@ -276,6 +335,7 @@ class Enemy extends Phaser.Physics.Matter.Sprite {
 
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
+
     }
 
     preUpdate(time, delta) {
@@ -294,6 +354,10 @@ class Enemy extends Phaser.Physics.Matter.Sprite {
         }
 
         this.setAngularVelocity(0);
+
+        // this.hp.x = this.x - HALF_TILE;
+        // this.hp.y = this.y - TILE_SIZE;
+        // this.hp.draw(this.data.get('HP') / this.data.get('maxHP'));
     }
 }
 
@@ -338,3 +402,45 @@ class Bullet extends Phaser.Physics.Matter.Sprite {
         }
     }
 }
+
+// https://phaser.io/examples/v3.85.0/game-objects/graphics/view/health-bars-demo
+/*
+class HealthBar {
+    constructor(scene, x, y) {
+        this.bar = new Phaser.GameObjects.Graphics(scene);
+
+        this.x = x;
+        this.y = y;
+        this.w = TILE_SIZE;
+
+        this.perc = 0.;
+
+        // this.draw();
+
+        scene.add.existing(this.bar);
+    }
+
+    draw(perc) {
+        this.bar.clear();
+
+        //  BG
+        this.bar.fillStyle(0x000000);
+        this.bar.fillRect(this.x, this.y, this.w, QUARTER_TILE);
+
+        //  Health
+        // this.bar.fillStyle(0xffffff);
+        // this.bar.fillRect(this.x + 2, this.y + 2, this.w - 2, HALF_TILE);
+
+
+        if (perc < 0.3) {
+            this.bar.fillStyle(0xff0000);
+        }
+        else {
+            this.bar.fillStyle(0x00ff00);
+        }
+
+        var d = Math.floor(perc * this.w - 4);
+        this.bar.fillRect(this.x + 2, this.y + 1, d, QUARTER_TILE - 2);
+    }
+}
+    */
