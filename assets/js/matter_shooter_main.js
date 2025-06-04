@@ -1,6 +1,6 @@
 const SPRITE_DATA = {
-    'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10 },
-    'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20 },
+    'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10, power: 1 },
+    'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, power: 1 },
 };
 
 const MAX_ENEMIES_PER_ROOM = 100;
@@ -86,6 +86,7 @@ class matterShooterMain extends Phaser.Scene {
         this.matter.world.convertTilemapLayer(this.layer);
         this.layer.forEachTile(tile => {
             if (tile.physics && tile.physics.matterBody) {
+                // set static?
                 tile.physics.matterBody.setCollisionCategory(this.worldCollisionCategory); // example
                 tile.physics.matterBody.setCollidesWith([this.enemiesCollisionCategory, this.bulletCollisionCategory, this.wizardCollisionCategory]); // example
             }
@@ -95,10 +96,11 @@ class matterShooterMain extends Phaser.Scene {
         let startx = TILE_SIZE * 2;
         let starty = TILE_SIZE * 2;
 
-        this.enemies = [];
+        // this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
             const enemy = this.spawnEnemy('ghost');
-            this.enemies.push(enemy);
+            // this.enemies.push(enemy);
+            this.moving_entities.push(enemy);
         }
 
         this.wizard = new MovingEntity(this.matter.world, this, 200, 50, 'wizard', { isSensor: true });
@@ -116,9 +118,9 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
 
         this.moving_entities.push(this.wizard);
-        for (let e of this.enemies) {
-            this.moving_entities.push(e);
-        }
+        // for (let e of this.enemies) {
+        //     this.moving_entities.push(e);
+        // }
 
         // data
         // this.wizard.setDataEnabled();
@@ -136,7 +138,7 @@ class matterShooterMain extends Phaser.Scene {
 
             bullet.setCollisionCategory(this.bulletCollisionCategory);
             bullet.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
-            bullet.setOnCollide(this.bulletVsEnemy);
+            // bullet.setOnCollide(this.bulletVsEnemy);
 
             this.bullets.push(bullet);
         }
@@ -164,8 +166,37 @@ class matterShooterMain extends Phaser.Scene {
 
         // });
 
-        this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.enemies.length}`).setColor("#000");
-        console.log(this.moving_entities)
+        this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.moving_entities.length-1}`).setColor("#000");
+        // console.log(this.moving_entities)
+
+        this.matter.world.on('collisionstart', (event, bodyA, bodyB) => {
+            // if (bodyA == this.wizard.body)
+            // console.log(bodyA.gameObject, bodyB.gameObject)
+            // console.log(bodyA, bodyB);
+            if (bodyA.gameObject.isBullet) {
+                bodyA.gameObject.setActive(false);
+                bodyA.gameObject.setVisible(false);
+                bodyA.gameObject.world.remove(bodyA, true);
+
+                if (bodyB.gameObject.isMovingEntity)
+                    bodyB.gameObject.damaged(1);
+            }
+
+            if (bodyB.gameObject.isBullet) {
+                bodyB.gameObject.setActive(false);
+                bodyB.gameObject.setVisible(false);
+                bodyB.gameObject.world.remove(bodyB, true);
+
+                if (bodyA.gameObject.isMovingEntity)
+                    bodyA.gameObject.damaged(1);
+            }
+
+
+            // console.log(bodyA, bodyB)
+            // bodyA.gameObject.setTint(0xff0000);
+            // bodyB.gameObject.setTint(0x00ff00);
+
+        });
     }
 
     spawnEnemy(key) {
@@ -186,23 +217,25 @@ class matterShooterMain extends Phaser.Scene {
         // console.log(bullet, enemy)
 
         if ("type" in bullet && bullet.type == "Sprite") {
-            bullet.setActive(false);
-            bullet.setVisible(false);
 
+            // has HP
             if (bullet.bar) {
-                bullet.bar.destroy();
+                bullet.damaged(enemy.power);
+                // bullet.bar.destroy();
+
                 // bullet.hp.destroy();
                 // bullet.world.remove(bullet.hp, true);
             }
-            bullet.world.remove(bullet.body, true);
+            // bullet.world.remove(bullet.body, true);
         }
         if ("type" in enemy && enemy.type == "Sprite") {
-            enemy.setActive(false);
-            enemy.setVisible(false);
+            // enemy.setActive(false);
+            // enemy.setVisible(false);
             if (enemy.bar) {
-                enemy.bar.destroy();
+                enemy.damaged(bullet.power);
+                // enemy.bar.destroy();
             }
-            enemy.world.remove(enemy.body, true);
+            // enemy.world.remove(enemy.body, true);
         }
     }
 
@@ -277,12 +310,12 @@ class matterShooterMain extends Phaser.Scene {
         // e.setAngularVelocity(0);
         // }
 
-        if (this.enemies.length < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
+        if (this.moving_entities.length-1 < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
             let e = this.spawnEnemy('ghost');
-            this.enemies.push(e);
+            // this.enemies.push(e);
             this.moving_entities.push(e);
         }
-        this.text_debug.setText(`Enemies: ${this.enemies.length}`);
+        this.text_debug.setText(`Enemies: ${this.moving_entities.length-1}`);
 
 
         // this.wizard.hp.x = this.wizard.x - HALF_TILE;
@@ -316,7 +349,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.setBody({
             type: 'rectangle',
             width: TILE_SIZE - 2,
-            height: TILE_SIZE - 2
+            height: TILE_SIZE - 2,
         });
 
         this.setDataEnabled();
@@ -325,10 +358,16 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.data.set('fire_cooldown', 0);
         this.data.set('fire_cooldown_max', SPRITE_DATA[texture].fire_cooldown_max);
         this.data.set('speed', SPRITE_DATA[texture].speed);
+        this.data.set('power', SPRITE_DATA[texture].power)
+
+        // console.log(texture, this.data)
 
         this.bar = new Phaser.GameObjects.Graphics(scene);
         this.scene.add.existing(this.bar);
         this.bar.setDepth(99);
+
+        this.isBullet = false;
+        this.isMovingEntity = true;
 
         this.scene.add.existing(this);
     }
@@ -336,6 +375,24 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         this.setAngularVelocity(0);
+    }
+
+    damaged(dmg) {
+        let hp = this.data.get('HP');
+        hp -= dmg;
+        hp = Math.max(0, hp);
+        this.data.set('HP', hp);
+
+        if (hp == 0) {
+            this.die();
+        }
+    }
+
+    die() {
+        this.setActive(false);
+        this.setVisible(false);
+        this.bar.destroy();
+        this.world.remove(this.body, true);
     }
 
     draw() {
@@ -365,27 +422,17 @@ class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
     constructor(world, scene, x, y, texture, bodyOptions) {
         super(world, scene, x, y, texture, null, { plugin: bodyOptions });
 
-        // this.play('eyes');
-        this.setDataEnabled();
-        this.data.set('HP', 10);
-        this.data.set('maxHP', 10);
-        this.data.set('fire_cooldown', 0);
-        // this.hp = new HealthBar(this.scene, x - TILE_SIZE, y - HALF_TILE);
-
-        this.setFrictionAir(0);
-
+        // this.setFrictionAir(0);
         this.scene.add.existing(this);
 
         const angle = Phaser.Math.Between(0, 360);
         const speed = Phaser.Math.FloatBetween(1, 3);
 
         // this.setAngle(angle);
-
         // this.setAngularVelocity(Phaser.Math.FloatBetween(-0.05, 0.05));
 
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
-
     }
 
     preUpdate(time, delta) {
@@ -421,13 +468,18 @@ class Bullet extends Phaser.Physics.Matter.Sprite {
         this.setFixedRotation();
         this.setActive(false);
 
+        this.power = 1;
+        this.isBullet = true;
+
         this.scene.add.existing(this);
 
         this.world.remove(this.body, true);
     }
 
     fire(x, y, angle, speed) {
+
         this.world.add(this.body);
+
 
         this.setPosition(x, y);
         this.setActive(true);
