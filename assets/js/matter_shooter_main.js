@@ -1,6 +1,6 @@
 const SPRITE_DATA = {
-    'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10, power: 1 },
-    'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, power: 1 },
+    'wizard': { hp: 2, speed: 3, fire_cooldown_max: 10, hurt_cooldown_max: 30, power: 1 },
+    'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, hurt_cooldown_max: 10, power: 1 },
 };
 
 const MAX_ENEMIES_PER_ROOM = 100;
@@ -104,33 +104,11 @@ class matterShooterMain extends Phaser.Scene {
         }
 
         this.wizard = new MovingEntity(this.matter.world, this, 200, 50, 'wizard', { isSensor: true });
-        // this.wizard = this.matter.add.image(200, 50, 'wizard', null, { isSensor: true });
-        // this.wizard.setBody({
-        //     type: 'rectangle',
-        //     width: TILE_SIZE - 2,
-        //     height: TILE_SIZE - 2
-        // });
-        // this.wizard.setVelocity(6, 3);
-        // this.wizard.setAngularVelocity(0.01);
-        // this.wizard.setBounce(1);
-        // this.wizard.setFriction(0, 0, 0);
+        this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
 
         this.moving_entities.push(this.wizard);
-        // for (let e of this.enemies) {
-        //     this.moving_entities.push(e);
-        // }
-
-        // data
-        // this.wizard.setDataEnabled();
-        // this.wizard.data.set('HP', 10);
-        // this.wizard.data.set('maxHP', 10);
-        // this.wizard.data.set('fire_cooldown', 0);
-        // this.wizard.hp = new HealthBar(this, this.wizard.x - TILE_SIZE, this.wizard.y - HALF_TILE);
-
-
-
 
         this.bullets = [];
         for (let i = 0; i < 64; i++) {
@@ -138,18 +116,8 @@ class matterShooterMain extends Phaser.Scene {
 
             bullet.setCollisionCategory(this.bulletCollisionCategory);
             bullet.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
-            // bullet.setOnCollide(this.bulletVsEnemy);
-
             this.bullets.push(bullet);
         }
-
-        // collision groups
-        // this.static_collisions = this.matter.world.nextGroup(); // bouncing
-        // this.bullet_collisions = this.matter.world.nextGroup(); // shooting
-        // this.dynamic_collisions = this.matter.world.nextGroup(); // bumping
-
-        // this.wizard.setCollisionGroup(this.static_collisions);
-
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -157,45 +125,34 @@ class matterShooterMain extends Phaser.Scene {
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // this.input.keyboard.on('keydown-SPACE', () => {
-        //     const bullet = this.bullets.find(bullet => !bullet.active);
+        this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.moving_entities.length - 1}`).setColor("#000");
 
-        //     if (bullet) {
-        //         bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
-        //     }
+        this.matter.world.on('collisionactive', event => {
+            for (let pair of event.pairs) {
+                // console.log(pair.bodyA, pair.bodyB);
+                // bullet-entity collision
+                if (pair.bodyA.gameObject.isBullet) {
+                    pair.bodyA.gameObject.setActive(false);
+                    pair.bodyA.gameObject.setVisible(false);
+                    pair.bodyA.gameObject.world.remove(pair.bodyA, true);
 
-        // });
+                    if (pair.bodyB.gameObject.isMovingEntity)
+                        pair.bodyB.gameObject.damaged(1);
+                    // entity-bullet collision
+                } else if (pair.bodyB.gameObject.isBullet) {
+                    pair.bodyB.gameObject.setActive(false);
+                    pair.bodyB.gameObject.setVisible(false);
+                    pair.bodyB.gameObject.world.remove(pair.bodyB, true);
 
-        this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.moving_entities.length-1}`).setColor("#000");
-        // console.log(this.moving_entities)
-
-        this.matter.world.on('collisionstart', (event, bodyA, bodyB) => {
-            // if (bodyA == this.wizard.body)
-            // console.log(bodyA.gameObject, bodyB.gameObject)
-            // console.log(bodyA, bodyB);
-            if (bodyA.gameObject.isBullet) {
-                bodyA.gameObject.setActive(false);
-                bodyA.gameObject.setVisible(false);
-                bodyA.gameObject.world.remove(bodyA, true);
-
-                if (bodyB.gameObject.isMovingEntity)
-                    bodyB.gameObject.damaged(1);
+                    if (pair.bodyA.gameObject.isMovingEntity)
+                        pair.bodyA.gameObject.damaged(1);
+                    // entity-entity collision
+                } else {
+                    if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
+                        this.wizard.damaged(1);
+                    }
+                }
             }
-
-            if (bodyB.gameObject.isBullet) {
-                bodyB.gameObject.setActive(false);
-                bodyB.gameObject.setVisible(false);
-                bodyB.gameObject.world.remove(bodyB, true);
-
-                if (bodyA.gameObject.isMovingEntity)
-                    bodyA.gameObject.damaged(1);
-            }
-
-
-            // console.log(bodyA, bodyB)
-            // bodyA.gameObject.setTint(0xff0000);
-            // bodyB.gameObject.setTint(0x00ff00);
-
         });
     }
 
@@ -206,6 +163,7 @@ class matterShooterMain extends Phaser.Scene {
         const enemy = new Enemy(this.matter.world, this, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
         enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
+        enemy.isEnemy = true;
 
         return enemy;
     }
@@ -221,26 +179,16 @@ class matterShooterMain extends Phaser.Scene {
             // has HP
             if (bullet.bar) {
                 bullet.damaged(enemy.power);
-                // bullet.bar.destroy();
-
-                // bullet.hp.destroy();
-                // bullet.world.remove(bullet.hp, true);
             }
-            // bullet.world.remove(bullet.body, true);
         }
         if ("type" in enemy && enemy.type == "Sprite") {
-            // enemy.setActive(false);
-            // enemy.setVisible(false);
             if (enemy.bar) {
                 enemy.damaged(bullet.power);
-                // enemy.bar.destroy();
             }
-            // enemy.world.remove(enemy.body, true);
         }
     }
 
     update(time, delta) {
-        // this.wizard.setAngularVelocity(0); // avoid rotation when colliding
         if (this.keyW.isDown) {
             this.wizard.setVelocityY(-this.wizard.data.get('speed'));
         }
@@ -258,6 +206,7 @@ class matterShooterMain extends Phaser.Scene {
         }
 
         let fc = this.wizard.data.get('fire_cooldown');
+
         if (fc == 0) {
             let angle = null;
             if (this.cursors.left.isDown) {
@@ -284,44 +233,14 @@ class matterShooterMain extends Phaser.Scene {
             this.wizard.data.set('fire_cooldown', fc);
         }
 
-        // this.input.keyboard.on('keydown-SPACE', () => {
-        //     const bullet = this.bullets.find(bullet => !bullet.active);
-
-        //     if (bullet) {
-        //         bullet.fire(this.wizard.x, this.wizard.y, this.wizard.rotation, 5);
-        //     }
-
-        // });
-
-
-        // for (let e of this.enemies) {
-        // const dist = Math.sqrt((e.body.position.x - this.wizard.x) ** 2 + (e.body.position.y - this.wizard.y) ** 2);
-        // if (dist < 120) {
-        //     if (e.body.position.x < this.wizard.body.position.x)
-        //         e.setVelocityX(0.5)
-        //     else
-        //         e.setVelocityX(-0.5)
-        //     if (e.body.position.y < this.wizard.body.position.y)
-        //         e.setVelocityY(0.5)
-        //     else
-        //         e.setVelocityY(-0.5)
-        // }
-
-        // e.setAngularVelocity(0);
-        // }
-
-        if (this.moving_entities.length-1 < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
-            let e = this.spawnEnemy('ghost');
+        if (this.moving_entities.length - 1 < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
+            const e = this.spawnEnemy('ghost');
             // this.enemies.push(e);
             this.moving_entities.push(e);
         }
-        this.text_debug.setText(`Enemies: ${this.moving_entities.length-1}`);
+        this.text_debug.setText(`Enemies: ${this.moving_entities.length - 1}`);
 
-
-        // this.wizard.hp.x = this.wizard.x - HALF_TILE;
-        // this.wizard.hp.y = this.wizard.y - TILE_SIZE;
-        // this.wizard.hp.draw(this.wizard.data.get('HP') / this.wizard.data.get('maxHP'));
-
+        // draw HP bars
         for (let i = this.moving_entities.length - 1; i >= 0; i--) {
             let me = this.moving_entities[i];
             if (!me.active) { // cull
@@ -357,6 +276,8 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.data.set('maxHP', SPRITE_DATA[texture].hp);
         this.data.set('fire_cooldown', 0);
         this.data.set('fire_cooldown_max', SPRITE_DATA[texture].fire_cooldown_max);
+        this.data.set('hurt_cooldown', 0);
+        this.data.set('hurt_cooldown_max', SPRITE_DATA[texture].hurt_cooldown_max);
         this.data.set('speed', SPRITE_DATA[texture].speed);
         this.data.set('power', SPRITE_DATA[texture].power)
 
@@ -375,16 +296,26 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         this.setAngularVelocity(0);
+
+        let hc = this.data.get('hurt_cooldown');
+        if (hc > 0) {
+            hc--;
+            this.data.set('hurt_cooldown', hc);
+        }
     }
 
     damaged(dmg) {
-        let hp = this.data.get('HP');
-        hp -= dmg;
-        hp = Math.max(0, hp);
-        this.data.set('HP', hp);
+        if (this.data.get('hurt_cooldown') === 0) {
+            this.data.set('hurt_cooldown', this.data.get('hurt_cooldown_max'));
 
-        if (hp == 0) {
-            this.die();
+            let hp = this.data.get('HP');
+            hp -= dmg;
+            hp = Math.max(0, hp);
+            this.data.set('HP', hp);
+
+            if (hp == 0) {
+                this.die();
+            }
         }
     }
 
@@ -393,6 +324,8 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.setVisible(false);
         this.bar.destroy();
         this.world.remove(this.body, true);
+
+        // if (this.isPlayer) this.scene.scene.restart();
     }
 
     draw() {
@@ -428,9 +361,6 @@ class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
         const angle = Phaser.Math.Between(0, 360);
         const speed = Phaser.Math.FloatBetween(1, 3);
 
-        // this.setAngle(angle);
-        // this.setAngularVelocity(Phaser.Math.FloatBetween(-0.05, 0.05));
-
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
     }
@@ -451,10 +381,6 @@ class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
         }
 
         this.setAngularVelocity(0);
-
-        // this.hp.x = this.x - HALF_TILE;
-        // this.hp.y = this.y - TILE_SIZE;
-        // this.hp.draw(this.data.get('HP') / this.data.get('maxHP'));
     }
 }
 
@@ -504,45 +430,3 @@ class Bullet extends Phaser.Physics.Matter.Sprite {
         }
     }
 }
-
-// https://phaser.io/examples/v3.85.0/game-objects/graphics/view/health-bars-demo
-/*
-class HealthBar {
-    constructor(scene, x, y) {
-        this.bar = new Phaser.GameObjects.Graphics(scene);
-
-        this.x = x;
-        this.y = y;
-        this.w = TILE_SIZE;
-
-        this.perc = 0.;
-
-        // this.draw();
-
-        scene.add.existing(this.bar);
-    }
-
-    draw(perc) {
-        this.bar.clear();
-
-        //  BG
-        this.bar.fillStyle(0x000000);
-        this.bar.fillRect(this.x, this.y, this.w, QUARTER_TILE);
-
-        //  Health
-        // this.bar.fillStyle(0xffffff);
-        // this.bar.fillRect(this.x + 2, this.y + 2, this.w - 2, HALF_TILE);
-
-
-        if (perc < 0.3) {
-            this.bar.fillStyle(0xff0000);
-        }
-        else {
-            this.bar.fillStyle(0x00ff00);
-        }
-
-        var d = Math.floor(perc * this.w - 4);
-        this.bar.fillRect(this.x + 2, this.y + 1, d, QUARTER_TILE - 2);
-    }
-}
-    */
