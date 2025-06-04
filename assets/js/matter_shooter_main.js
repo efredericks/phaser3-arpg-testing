@@ -44,6 +44,7 @@ class matterShooterMain extends Phaser.Scene {
         this.wizardCollisionCategory = this.matter.world.nextCategory();
         this.bulletCollisionCategory = this.matter.world.nextCategory();
 
+        this.moving_entities = [];
 
 
         this.cameraSpeed = 10;
@@ -100,7 +101,7 @@ class matterShooterMain extends Phaser.Scene {
             this.enemies.push(enemy);
         }
 
-        this.wizard = new MovingEntity(this.matter.world, 200, 50, 'wizard', {isSensor: true});
+        this.wizard = new MovingEntity(this.matter.world, this, 200, 50, 'wizard', { isSensor: true });
         // this.wizard = this.matter.add.image(200, 50, 'wizard', null, { isSensor: true });
         // this.wizard.setBody({
         //     type: 'rectangle',
@@ -113,6 +114,11 @@ class matterShooterMain extends Phaser.Scene {
         // this.wizard.setFriction(0, 0, 0);
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
+
+        this.moving_entities.push(this.wizard);
+        for (let e of this.enemies) {
+            this.moving_entities.push(e);
+        }
 
         // data
         // this.wizard.setDataEnabled();
@@ -159,15 +165,18 @@ class matterShooterMain extends Phaser.Scene {
         // });
 
         this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.enemies.length}`).setColor("#000");
+        console.log(this.moving_entities)
     }
 
     spawnEnemy(key) {
         let _x = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
         let _y = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
 
-        const enemy = new Enemy(this.matter.world, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
+        const enemy = new Enemy(this.matter.world, this, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
         enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
+
+        return enemy;
     }
 
     bulletVsEnemy(collisionData) {
@@ -180,8 +189,9 @@ class matterShooterMain extends Phaser.Scene {
             bullet.setActive(false);
             bullet.setVisible(false);
 
-            if (bullet.hp) {
-                bullet.hp.destroy();
+            if (bullet.bar) {
+                bullet.bar.destroy();
+                // bullet.hp.destroy();
                 // bullet.world.remove(bullet.hp, true);
             }
             bullet.world.remove(bullet.body, true);
@@ -189,6 +199,9 @@ class matterShooterMain extends Phaser.Scene {
         if ("type" in enemy && enemy.type == "Sprite") {
             enemy.setActive(false);
             enemy.setVisible(false);
+            if (enemy.bar) {
+                enemy.bar.destroy();
+            }
             enemy.world.remove(enemy.body, true);
         }
     }
@@ -265,7 +278,9 @@ class matterShooterMain extends Phaser.Scene {
         // }
 
         if (this.enemies.length < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
-            this.enemies.push(this.spawnEnemy('ghost'));
+            let e = this.spawnEnemy('ghost');
+            this.enemies.push(e);
+            this.moving_entities.push(e);
         }
         this.text_debug.setText(`Enemies: ${this.enemies.length}`);
 
@@ -274,13 +289,19 @@ class matterShooterMain extends Phaser.Scene {
         // this.wizard.hp.y = this.wizard.y - TILE_SIZE;
         // this.wizard.hp.draw(this.wizard.data.get('HP') / this.wizard.data.get('maxHP'));
 
+        for (let me of this.moving_entities) {
+            me.draw();
+        }
+
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 }
 
 class MovingEntity extends Phaser.Physics.Matter.Sprite {
-    constructor(world, x, y, texture, bodyOptions) {
+    constructor(world, scene, x, y, texture, bodyOptions) {
         super(world, x, y, texture, null, { plugin: bodyOptions });
+
+        this.scene = this.scene;
 
         console.assert(texture in SPRITE_DATA, `Missing ${texture} in SPRITE_DATA dictionary`);
 
@@ -300,20 +321,44 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.data.set('fire_cooldown_max', SPRITE_DATA[texture].fire_cooldown_max);
         this.data.set('speed', SPRITE_DATA[texture].speed);
 
+        this.bar = new Phaser.GameObjects.Graphics(scene);
+        this.scene.add.existing(this.bar);
+        this.bar.setDepth(99);
+
         this.scene.add.existing(this);
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
-
         this.setAngularVelocity(0);
     }
 
+    draw() {
+        this.bar.clear();
+        let perc = this.data.get('HP') / this.data.get('maxHP');
+
+        let _x = this.x - HALF_TILE;
+        let _y = this.y - TILE_SIZE;
+
+        //  BG
+        this.bar.fillStyle(0x000000);
+        this.bar.fillRect(_x, _y, TILE_SIZE, QUARTER_TILE);
+
+        if (perc < 0.3) {
+            this.bar.fillStyle(0xff0000);
+        }
+        else {
+            this.bar.fillStyle(0x00ff00);
+        }
+
+        var d = Math.floor(perc * TILE_SIZE - 4);
+        this.bar.fillRect(_x + 2, _y + 1, d, QUARTER_TILE - 2);
+    }
 }
 
 class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
-    constructor(world, x, y, texture, bodyOptions) {
-        super(world, x, y, texture, null, { plugin: bodyOptions });
+    constructor(world, scene, x, y, texture, bodyOptions) {
+        super(world, scene, x, y, texture, null, { plugin: bodyOptions });
 
         // this.play('eyes');
         this.setDataEnabled();
