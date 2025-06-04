@@ -1,7 +1,7 @@
 const SPRITE_DATA = {
     'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10, hurt_cooldown_max: 30, power: 1 },
     'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, hurt_cooldown_max: 10, power: 1 },
-    'hp-potion': {heal: 5},
+    'hp-potion': { heal: 5 },
 };
 
 const MAX_ENEMIES_PER_ROOM = 100;
@@ -128,6 +128,17 @@ class matterShooterMain extends Phaser.Scene {
         this.hp_potion.setCollidesWith([this.wizardCollisionCategory]);
 
 
+        this.wizard.setOnCollideWith(this.hp_potion, pair => {
+            // Do something
+            // console.log('wowee')
+            this.wizard.heal(SPRITE_DATA['hp-potion'].heal);
+            this.hp_potion.setActive(false);
+            this.hp_potion.setVisible(false);
+            this.hp_potion.world.remove(this.hp_potion, true);
+        });
+
+
+
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -158,14 +169,15 @@ class matterShooterMain extends Phaser.Scene {
                     // entity-entity collision
                 } else {
                     // pickup
-                    if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject == this.hp_potion) || (pair.bodyA.gameObject == this.hp_potion && pair.bodyB.gameObject.isPlayer)) {
-                        this.wizard.heal(SPRITE_DATA['hp-potion'].heal);
+                    // if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject == this.hp_potion) || (pair.bodyA.gameObject == this.hp_potion && pair.bodyB.gameObject.isPlayer)) {
+                    //     this.wizard.heal(SPRITE_DATA['hp-potion'].heal);
 
-                    }
-                    // enemy-player collision
-                    else if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
+                    // }
+                    // // enemy-player collision
+                    // else 
+                    if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
                         this.wizard.damaged(1);
-                    } 
+                    }
                 }
             }
         });
