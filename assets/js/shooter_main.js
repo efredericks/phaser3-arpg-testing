@@ -95,6 +95,7 @@ class shooterMain extends Phaser.Scene {
         this.playerBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
         this.enemyBullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
 
+
         // collisions
         this.physics.add.collider(this.player, this.enemies, (_p, _e) => this.entityBumpCallback(_p, _e));
         this.physics.add.collider(this.enemies, this.enemies);

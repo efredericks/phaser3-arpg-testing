@@ -1,6 +1,7 @@
 const SPRITE_DATA = {
-    'wizard': { hp: 2, speed: 3, fire_cooldown_max: 10, hurt_cooldown_max: 30, power: 1 },
+    'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10, hurt_cooldown_max: 30, power: 1 },
     'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, hurt_cooldown_max: 10, power: 1 },
+    'hp-potion': {heal: 5},
 };
 
 const MAX_ENEMIES_PER_ROOM = 100;
@@ -27,6 +28,8 @@ class matterShooterMain extends Phaser.Scene {
         this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
         this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
         this.load.image("ouch", "assets/img/kenney_tiny-dungeon/Tiles/tile_0062.png");
+
+        this.load.image("red-potion", "assets/img/kenney_tiny-dungeon/Tiles/tile_0115.png");
     }
 
     create() {
@@ -43,9 +46,9 @@ class matterShooterMain extends Phaser.Scene {
         this.enemiesCollisionCategory = this.matter.world.nextCategory();
         this.wizardCollisionCategory = this.matter.world.nextCategory();
         this.bulletCollisionCategory = this.matter.world.nextCategory();
+        this.pickupCollisionCategory = this.matter.world.nextCategory();
 
         this.moving_entities = [];
-
 
         this.cameraSpeed = 10;
         this.cameras.main.setZoom(1);
@@ -106,7 +109,7 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard = new MovingEntity(this.matter.world, this, 200, 50, 'wizard', { isSensor: true });
         this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
-        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
+        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory]);
 
         this.moving_entities.push(this.wizard);
 
@@ -118,6 +121,12 @@ class matterShooterMain extends Phaser.Scene {
             bullet.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory]);
             this.bullets.push(bullet);
         }
+
+        // pickups
+        this.hp_potion = this.matter.add.image(400, 300, 'red-potion', null, null);
+        this.hp_potion.setCollisionCategory(this.pickupCollisionCategory);
+        this.hp_potion.setCollidesWith([this.wizardCollisionCategory]);
+
 
         this.keyW = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
@@ -148,9 +157,15 @@ class matterShooterMain extends Phaser.Scene {
                         pair.bodyA.gameObject.damaged(1);
                     // entity-entity collision
                 } else {
-                    if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
-                        this.wizard.damaged(1);
+                    // pickup
+                    if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject == this.hp_potion) || (pair.bodyA.gameObject == this.hp_potion && pair.bodyB.gameObject.isPlayer)) {
+                        this.wizard.heal(SPRITE_DATA['hp-potion'].heal);
+
                     }
+                    // enemy-player collision
+                    else if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
+                        this.wizard.damaged(1);
+                    } 
                 }
             }
         });
@@ -304,6 +319,12 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         }
     }
 
+    heal(amt) {
+        let hp = this.data.get('HP') + amt;
+        hp = Math.min(hp, this.data.get('maxHP'));
+        this.data.set('HP', hp);
+    }
+
     damaged(dmg) {
         if (this.data.get('hurt_cooldown') === 0) {
             this.data.set('hurt_cooldown', this.data.get('hurt_cooldown_max'));
@@ -325,7 +346,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.bar.destroy();
         this.world.remove(this.body, true);
 
-        // if (this.isPlayer) this.scene.scene.restart();
+        if (this.isPlayer) this.scene.scene.restart();
     }
 
     draw() {
