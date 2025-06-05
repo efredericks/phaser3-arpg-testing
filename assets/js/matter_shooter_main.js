@@ -15,6 +15,12 @@ const MAP_DATA = {
     NUM_COLS: 100,
 }
 
+const DIRECTIONS = [
+    [-1, -1], [0, -1], [1, -1],
+    [-1, 0], [0, 0], [1, 0],
+    [-1, 1], [0, 1], [1, 1]
+];
+
 const MAX_ENEMIES_PER_ROOM = 100;
 const HALF_PI = Math.PI / 2.;
 const TILE_SIZE = 16;
@@ -67,7 +73,7 @@ class matterShooterMain extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
 
         // tilemap
-        this.world = this.generateWorld("arena"); // arena, cellular, bsp
+        this.world = this.generateWorld("bsp"); // arena, cellular, bsp
         // this.world.level = world.level;
 
         this.map = this.make.tilemap({ data: this.world.level, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
@@ -230,20 +236,39 @@ class matterShooterMain extends Phaser.Scene {
             let mapcb = function (x, y, val) {
                 // console.log(x, y, val);
                 let ch = val;
-                if (val == 1 || (x == 0 || y == 0 || x == MAP_DATA.NUM_COLS - 1 || y == MAP_DATA.NUM_ROWS - 1)) ch = 14;
+                if (val == 1 || (x == 0 || y == 0 || x == MAP_DATA.NUM_COLS - 1 || y == MAP_DATA.NUM_ROWS - 1)) ch = 0;
                 else {
-                    let r = Math.random();
-                    if (r < 0.9) ch = 48;
-                    else if (r < 0.95) ch = 49;
-                    else if (r < 0.97) ch = 14;
-                    else ch = 42;
+                    if (t == "arena") {
+                        let r = Math.random();
+                        if (r < 0.9) ch = 48;
+                        else if (r < 0.95) ch = 49;
+                        else if (r < 0.97) ch = 14;
+                        else ch = 42;
+                    } else {
+                        ch = 48;
+                    }
                 }
                 level[y][x] = ch;
 
-                if (MAP_DATA.WALKABLE.indexOf(ch) >= 0)
+                if (ch != 0 && MAP_DATA.WALKABLE.indexOf(ch) >= 0)
                     open_cells.push({ c: x, r: y });
             }
             map.create(mapcb);
+
+            // post process to minimize colliding entities
+            for (let r = 0; r < MAP_DATA.NUM_ROWS; r++) {
+                for (let c = 0; c < MAP_DATA.NUM_COLS; c++) {
+                    if (MAP_DATA.WALKABLE.indexOf(level[r][c]) >= 0) {
+                        for (let d of DIRECTIONS) {
+                            let next = { c: c + d[0], r: r + d[1] };
+
+                            if (next.c >= 0 && next.c <= MAP_DATA.NUM_COLS - 1 && next.r >= 0 && next.r <= MAP_DATA.NUM_ROWS - 1) {
+                                if (level[next.r][next.c] == 0) level[next.r][next.c] = 14;
+                            }
+                        }
+                    }
+                }
+            }
             console.log(level)
         }
         return { level: level, open_cells: open_cells };
@@ -334,7 +359,8 @@ class matterShooterMain extends Phaser.Scene {
         }
 
         if (this.moving_entities.length - 1 < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
-            const e = this.spawnEnemy('ghost');
+            let oc = Phaser.Math.RND.pick(this.world.open_cells);
+            const e = this.spawnEnemy('ghost', oc.c, oc.r);
             // this.enemies.push(e);
             this.moving_entities.push(e);
         }
