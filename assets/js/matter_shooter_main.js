@@ -4,6 +4,17 @@ const SPRITE_DATA = {
     'hp-potion': { heal: 5 },
 };
 
+const MAP_DATA = {
+    //42 stones
+    //48 blank
+    //49 dots
+    //14 wall
+    WALKABLE: [42, 48, 49],
+    BLOCKING: [14],
+    NUM_ROWS: 100,
+    NUM_COLS: 100,
+}
+
 const MAX_ENEMIES_PER_ROOM = 100;
 const HALF_PI = Math.PI / 2.;
 const TILE_SIZE = 16;
@@ -33,7 +44,7 @@ class matterShooterMain extends Phaser.Scene {
     }
 
     create() {
-        this.matter.world.setBounds(0, 0, 100 * TILE_SIZE, 100 * TILE_SIZE).disableGravity();
+        this.matter.world.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE).disableGravity();
 
         this.anims.create({
             key: "sprWater",
@@ -53,34 +64,13 @@ class matterShooterMain extends Phaser.Scene {
         this.cameraSpeed = 10;
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
-        this.cameras.main.setBounds(0, 0, 100 * TILE_SIZE, 100 * TILE_SIZE);
+        this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
 
         // tilemap
-        this.level = [];
-        for (let r = 0; r < 100; r++) {
-            let row = [];
-            for (let c = 0; c < 100; c++) {
-                let ch = 0;
-                if (r == 0 || c == 0 || r == 99 || c == 99)
-                    ch = 14;
-                else {
-                    let r = Math.random();
-                    if (r < 0.9) ch = 48;
-                    else if (r < 0.95) ch = 49;
-                    else if (r < 0.97) ch = 14;
-                    else ch = 42;
-                }
+        this.world = this.generateWorld("arena"); // arena, cellular, bsp
+        // this.world.level = world.level;
 
-                //42 stones
-                //48 blank
-                //49 dots
-
-                row.push(ch);
-            }
-            this.level.push(row);
-        }
-
-        this.map = this.make.tilemap({ data: this.level, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
+        this.map = this.make.tilemap({ data: this.world.level, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
         this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
 
@@ -95,18 +85,17 @@ class matterShooterMain extends Phaser.Scene {
             }
         });
 
-
-        let startx = TILE_SIZE * 2;
-        let starty = TILE_SIZE * 2;
-
         // this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
-            const enemy = this.spawnEnemy('ghost');
+            let oc = Phaser.Math.RND.pick(this.world.open_cells);
+            const enemy = this.spawnEnemy('ghost', oc.c, oc.r);
             // this.enemies.push(enemy);
             this.moving_entities.push(enemy);
         }
 
-        this.wizard = new MovingEntity(this.matter.world, this, 200, 50, 'wizard', { isSensor: true });
+
+        let woc = Phaser.Math.RND.pick(this.world.open_cells);
+        this.wizard = new MovingEntity(this.matter.world, this, woc.c * TILE_SIZE, woc.r * TILE_SIZE, 'wizard', { isSensor: true });
         this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory]);
@@ -183,9 +172,93 @@ class matterShooterMain extends Phaser.Scene {
         });
     }
 
-    spawnEnemy(key) {
-        let _x = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
-        let _y = Phaser.Math.Between(TILE_SIZE * 2, 100 * TILE_SIZE);
+    generateWorld(t = "random") {
+        let level = [];
+        let open_cells = [];
+
+        if (t == "random") {
+            for (let r = 0; r < MAP_DATA.NUM_ROWS; r++) {
+                let row = [];
+                for (let c = 0; c < MAP_DATA.NUM_COLS; c++) {
+                    let ch = 0;
+                    if (r == 0 || c == 0 || r == MAP_DATA.NUM_ROWS - 1 || c == MAP_DATA.NUM_COLS - 1)
+                        ch = 14;
+                    else {
+                        let r = Math.random();
+                        if (r < 0.9) ch = 48;
+                        else if (r < 0.95) ch = 49;
+                        else if (r < 0.97) ch = 14;
+                        else ch = 42;
+                    }
+
+                    //42 stones
+                    //48 blank
+                    //49 dots
+                    if (MAP_DATA.WALKABLE.indexOf(ch) >= 0) {
+                        open_cells.push({ r: r, c: c })
+                    }
+
+                    row.push(ch);
+                }
+                level.push(row);
+            }
+        } else {
+            // let map = new ROT.Map.EllerMaze(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
+
+            let map;
+
+            if (t == "bsp") {
+                map = new ROT.Map.Digger(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
+            } else if (t == "cellular") {
+                map = new ROT.Map.Cellular(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
+                map.randomize(0.5);
+                for (let i = 0; i < 50; i++) map.create();
+                map.connect(null, 0, function (from, to) {
+                    // console.log(from,to)
+                });
+            } else { // arena
+                map = new ROT.Map.Arena(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
+            }
+
+            for (let r = 0; r < MAP_DATA.NUM_ROWS; r++) {
+                let row = [];
+                for (let c = 0; c < MAP_DATA.NUM_COLS; c++) {
+                    row.push(-1);
+                }
+                level.push(row);
+            }
+            let mapcb = function (x, y, val) {
+                // console.log(x, y, val);
+                let ch = val;
+                if (val == 1 || (x == 0 || y == 0 || x == MAP_DATA.NUM_COLS - 1 || y == MAP_DATA.NUM_ROWS - 1)) ch = 14;
+                else {
+                    let r = Math.random();
+                    if (r < 0.9) ch = 48;
+                    else if (r < 0.95) ch = 49;
+                    else if (r < 0.97) ch = 14;
+                    else ch = 42;
+                }
+                level[y][x] = ch;
+
+                if (MAP_DATA.WALKABLE.indexOf(ch) >= 0)
+                    open_cells.push({ c: x, r: y });
+            }
+            map.create(mapcb);
+            console.log(level)
+        }
+        return { level: level, open_cells: open_cells };
+    }
+
+    spawnEnemy(key, c = null, r = null) {
+        let _x, _y;
+        if (c == null || r == null) {
+            _x = Phaser.Math.Between(TILE_SIZE * 2, (MAP_DATA.NUM_COLS - 1) * TILE_SIZE);
+            _y = Phaser.Math.Between(TILE_SIZE * 2, (MAP_DATA.NUM_ROWS - 1) * TILE_SIZE);
+        } else {
+            _x = c * TILE_SIZE;
+            _y = r * TILE_SIZE;
+        }
+
 
         const enemy = new Enemy(this.matter.world, this, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
