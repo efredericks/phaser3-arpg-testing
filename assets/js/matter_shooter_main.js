@@ -73,7 +73,11 @@ class matterShooterMain extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
 
         // tilemap
-        this.world = this.generateWorld("bsp"); // arena, cellular, bsp
+        let wtypes = ["random", "arena", "bsp", "cellular"];
+        this.world = this.generateWorld(
+            // Phaser.Math.RND.pick(wtypes)
+            "bsp",
+        ); // arena, cellular, bsp
         // this.world.level = world.level;
 
         this.map = this.make.tilemap({ data: this.world.level, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
@@ -101,7 +105,7 @@ class matterShooterMain extends Phaser.Scene {
 
 
         let woc = Phaser.Math.RND.pick(this.world.open_cells);
-        this.wizard = new MovingEntity(this.matter.world, this, woc.c * TILE_SIZE, woc.r * TILE_SIZE, 'wizard', { isSensor: true });
+        this.wizard = new MovingEntity(this.matter.world, this, woc.c * TILE_SIZE + HALF_TILE, woc.r * TILE_SIZE + HALF_TILE, 'wizard', { isSensor: true });
         this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory]);
@@ -214,7 +218,13 @@ class matterShooterMain extends Phaser.Scene {
             let map;
 
             if (t == "bsp") {
-                map = new ROT.Map.Digger(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
+                map = new ROT.Map.Digger(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS, {
+                    roomWidth: [5, 20],
+                    roomHeight: [5, 20],
+                    corridorLength: [5, 20],
+                    dugPercentage: 0.4,
+
+                });
             } else if (t == "cellular") {
                 map = new ROT.Map.Cellular(MAP_DATA.NUM_COLS, MAP_DATA.NUM_ROWS);
                 map.randomize(0.5);
@@ -280,12 +290,12 @@ class matterShooterMain extends Phaser.Scene {
             _x = Phaser.Math.Between(TILE_SIZE * 2, (MAP_DATA.NUM_COLS - 1) * TILE_SIZE);
             _y = Phaser.Math.Between(TILE_SIZE * 2, (MAP_DATA.NUM_ROWS - 1) * TILE_SIZE);
         } else {
-            _x = c * TILE_SIZE;
-            _y = r * TILE_SIZE;
+            _x = c * TILE_SIZE + HALF_TILE;
+            _y = r * TILE_SIZE + HALF_TILE;
         }
 
 
-        const enemy = new Enemy(this.matter.world, this, Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 600), key, null, { isSensor: true });//, wrapBounds);
+        const enemy = new Enemy(this.matter.world, this, _x, _y, key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
         enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
         enemy.isEnemy = true;
@@ -525,6 +535,12 @@ class Bullet extends Phaser.Physics.Matter.Sprite {
         this.setFrictionAir(0);
         this.setFixedRotation();
         this.setActive(false);
+
+        this.setBody({
+            type: 'rectangle',
+            width: TILE_SIZE - 4,
+            height: TILE_SIZE - 4,
+        });
 
         this.power = 1;
         this.isBullet = true;
