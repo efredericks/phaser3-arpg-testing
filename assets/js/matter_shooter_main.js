@@ -9,8 +9,9 @@ const MAP_DATA = {
     //48 blank
     //49 dots
     //14 wall
-    WALKABLE: [42, 48, 49],
-    BLOCKING: [14],
+    //33 open door
+    WALKABLE: [42, 48, 49, 33],
+    BLOCKING: [14, 36, 37, 38],
     NUM_ROWS: 100,
     NUM_COLS: 100,
 }
@@ -84,7 +85,7 @@ class matterShooterMain extends Phaser.Scene {
         this.tiles = this.map.addTilesetImage("tinydungeon-tiles");
         this.layer = this.map.createLayer(0, this.tiles, 0, 0);
 
-        this.map.setCollision(14);
+        this.map.setCollision(MAP_DATA.BLOCKING);
         this.layer.setCollisionByProperty({ collides: true });
         this.matter.world.convertTilemapLayer(this.layer);
         this.layer.forEachTile(tile => {
@@ -109,6 +110,11 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
         this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory]);
+
+        //debug
+        this.wizard.text_debug = this.add.text(this.wizard.x, this.wizard.y - TILE_SIZE, `${this.wizard.x}, ${this.wizard.y}`).setColor("#000");
+        this.wizard.x = this.world.door.c * TILE_SIZE + HALF_TILE;
+        this.wizard.y = this.world.door.r * TILE_SIZE + HALF_TILE;
 
         this.moving_entities.push(this.wizard);
 
@@ -281,7 +287,43 @@ class matterShooterMain extends Phaser.Scene {
             }
             console.log(level)
         }
-        return { level: level, open_cells: open_cells };
+
+        // carve out a town?
+        let oc = Phaser.Math.RND.pick(open_cells); // center point of area
+        while (oc.c < 6 || oc.c > MAP_DATA.NUM_COLS - 7 || oc.r < 6 || oc.r > MAP_DATA.NUM_ROWS - 7) {
+            oc = Phaser.Math.RND.pick(open_cells); // center point of area
+        }
+        level[oc.r][oc.c] = 33;
+        let tlc = oc.c - 3;
+        let tlr = oc.r - 6;
+        for (let r = tlr; r <= tlr + 6; r++) {
+            for (let c = tlc; c <= tlc + 6; c++) {
+                if (r != oc.r || c != oc.c) {
+                    if (r == tlr || r == tlr + 6 || c == tlc || c == tlc + 6)
+                        if (c == tlc)
+                            level[r][c] = 36;
+                        else if (c == tlc + 6)
+                            level[r][c] = 38;
+                        else
+                            level[r][c] = 37;
+                    else
+                        level[r][c] = 0;
+                }
+            }
+        }
+        for (let c = tlc-1; c <= tlc + 7; c++) {
+            level[oc.r+1][c] = 0;
+            level[oc.r-7][c] = 0;
+        }
+        for (let r = tlr-1; r <= tlr + 7; r++) {
+           level[r][tlc-1] = 0;
+           level[r][tlc+7] = 0;
+        }
+        level[oc.r-3][oc.c] = 33;
+
+        console.log('Door:', oc.c * TILE_SIZE, oc.r * TILE_SIZE)
+
+        return { level: level, open_cells: open_cells, door: oc };
     }
 
     spawnEnemy(key, c = null, r = null) {
@@ -386,6 +428,10 @@ class matterShooterMain extends Phaser.Scene {
             }
         }
 
+        this.wizard.text_debug.setText(`${Math.floor(this.wizard.x)},${Math.floor(this.wizard.y)}`);
+        this.wizard.text_debug.x = this.wizard.x - TILE_SIZE;
+        this.wizard.text_debug.y = this.wizard.y - TILE_SIZE * 2;
+
         this.cameras.main.centerOn(this.wizard.x, this.wizard.y);
     }
 }
@@ -432,6 +478,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
         this.setAngularVelocity(0);
+        this.setFixedRotation(0);
 
         let hc = this.data.get('hurt_cooldown');
         if (hc > 0) {
