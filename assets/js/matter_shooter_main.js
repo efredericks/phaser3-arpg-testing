@@ -82,6 +82,9 @@ class matterShooterMain extends Phaser.Scene {
         this.cameras.main.setBackgroundColor(0x1D1923);
         this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
         this.cameras.main.setLerp(0.1, 0.1);
+        this.cameras.main.fadeIn();
+        this.cameras.main.postFX.addVignette(0.5, 0.5, 0.8);
+
         this.cameras.main.zoomTo(2, 10);
 
         // tilemap
