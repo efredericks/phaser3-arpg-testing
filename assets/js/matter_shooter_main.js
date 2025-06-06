@@ -445,7 +445,10 @@ class matterShooterMain extends Phaser.Scene {
             }
         }
 
-        this.wizard.text_debug.setText(`${Math.floor(this.wizard.x)},${Math.floor(this.wizard.y)}`);
+        let num = 0;
+        let inv = this.wizard.data.get('inventory');
+        if ('ghost-green' in inv) num = inv['ghost-green'];
+        this.wizard.text_debug.setText(`${Math.floor(this.wizard.x)},${Math.floor(this.wizard.y)},${num}`);
         this.wizard.text_debug.x = this.wizard.x - TILE_SIZE;
         this.wizard.text_debug.y = this.wizard.y - TILE_SIZE * 2;
 
@@ -506,7 +509,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.data.set('speed', SPRITE_DATA[texture].speed);
         this.data.set('power', SPRITE_DATA[texture].power)
 
-        this.data.set('inventory', []);
+        this.data.set('inventory', {});
 
         // console.log(texture, this.data)
 
@@ -528,6 +531,18 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         // });
 
         this.scene.add.existing(this);
+    }
+
+    addItem(drop) {
+        let inv = this.data.get('inventory');
+        if (inv) {
+            if (drop.texture.key in inv) {
+                inv[drop.texture.key]++;
+            } else {
+                inv[drop.texture.key]=1;
+            }
+        }
+        this.data.set('inventory', inv);
     }
 
     preUpdate(time, delta) {
@@ -578,9 +593,10 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         if (this.isEnemy) {
             let inv = this.data.get('inventory');
             if (inv) {
-                for (let _inv of inv) {
-                    if (_inv in SPRITE_DATA) {
-                        if (Math.random() < SPRITE_DATA[_inv].drop_rate) {
+                // for (let _inv of inv) {
+                for (const [key, val] of Object.entries(inv)) {
+                    if (key in SPRITE_DATA) {
+                        if (Math.random() < SPRITE_DATA[key].drop_rate) {
 
                             // abstract
                             let drop = this.scene.matter.add.image(this.x, this.y, 'ghost-green', null, null);
@@ -590,11 +606,12 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
                                 // Do something
                                 // console.log('wowee')
                                 this.scene.wizard.heal(SPRITE_DATA['hp-potion'].heal);
+                                this.scene.wizard.addItem(drop);
                                 drop.setActive(false);
                                 drop.setVisible(false);
                                 this.world.remove(drop, true);
                             });
-                            // spawnItem(_inv, this.x, this.y);
+                            // spawnItem(key, this.x, this.y);
 
                         }
                     }
@@ -721,9 +738,16 @@ class Ghost extends MovingEntity {//Phaser.Physics.Matter.Sprite {
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
 
+        // blarg
         let inv = this.data.get('inventory');
-        if (texture == 'ghost')
-            inv.push('ghost-leg');
+        if (texture == 'ghost') {
+            if ('ghost-leg' in inv) {
+                inv['ghost-leg']++;
+            } else {
+                inv['ghost-leg'] = 1;
+            }
+            // inv.push('ghost-leg');
+        }
         this.data.set('inventory', inv);
     }
 
