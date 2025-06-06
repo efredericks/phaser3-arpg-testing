@@ -15,7 +15,7 @@ var config = {
     physics: {
         default: "matter",
         matter: {
-            debug: true,
+            // debug: true,
             // enableSleeping: true,
         }
         // default: "arcade",

@@ -517,6 +517,16 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.isBullet = false;
         this.isMovingEntity = true;
 
+        // let fx = this.preFX.addGlow("0xff00ff");
+
+        // this.scene.tweens.add({
+        //     targets: fx,
+        //     outerStrength: 50,
+        //     yoyo: true,
+        //     loop: -1,
+        //     ease: 'sine.inout'
+        // });
+
         this.scene.add.existing(this);
     }
 
@@ -527,9 +537,13 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
 
         let hc = this.data.get('hurt_cooldown');
         if (hc > 0) {
+            this.setTint("0xff0000");
             hc--;
-            this.data.set('hurt_cooldown', hc);
+        } else if (hc == 0) {
+            this.clearTint();
+            hc--;
         }
+        this.data.set('hurt_cooldown', hc);
     }
 
     heal(amt) {
@@ -539,7 +553,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
     }
 
     damaged(dmg) {
-        if (this.data.get('hurt_cooldown') === 0) {
+        if (this.data.get('hurt_cooldown') <= 0) {
             this.data.set('hurt_cooldown', this.data.get('hurt_cooldown_max'));
 
             let hp = this.data.get('HP');
