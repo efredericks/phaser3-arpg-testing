@@ -1,15 +1,22 @@
 var config = {
     type: Phaser.WEBGL,
 
-    width: 600,
-    height: 600,
+    width: 1024,
+    height: 768,
     zoom: 1,
 
     backgroundColor: "black",
+    // scale: {
+    //     mode: Phaser.Scale.FIT,
+    //     autoCenter: Phaser.Scale.CENTER_BOTH,
+    //     zoom: 4,
+
+    // },
     physics: {
         default: "matter",
         matter: {
             debug: true,
+            // enableSleeping: true,
         }
         // default: "arcade",
         // arcade: {

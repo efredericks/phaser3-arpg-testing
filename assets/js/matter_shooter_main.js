@@ -1,7 +1,13 @@
 const SPRITE_DATA = {
+    // moving entities
     'wizard': { hp: 10, speed: 3, fire_cooldown_max: 10, hurt_cooldown_max: 30, power: 1 },
     'ghost': { hp: 3, speed: 1, fire_cooldown_max: 20, hurt_cooldown_max: 10, power: 1 },
+    'spider': { hp: 2, speed: 3, fire_cooldown_max: 0, hurt_cooldown_max: 10, power: 2, state_change_timeout: 60 },
+    // consumables
     'hp-potion': { heal: 5 },
+    // pickups
+    'ghost-leg': { drop_rate: 0.8 },
+
 };
 
 const MAP_DATA = {
@@ -45,6 +51,9 @@ class matterShooterMain extends Phaser.Scene {
         this.load.image("tinydungeon-tiles", "assets/img/kenney_tiny-dungeon/Tilemap/tilemap_packed.png");
         this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
         this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
+        this.load.image("ghost-green", "assets/img/kenney_tiny-dungeon/Tiles/tile_0108.png");
+        this.load.image("spider", "assets/img/kenney_tiny-dungeon/Tiles/tile_0122.png");
+
         this.load.image("ouch", "assets/img/kenney_tiny-dungeon/Tiles/tile_0062.png");
 
         this.load.image("red-potion", "assets/img/kenney_tiny-dungeon/Tiles/tile_0115.png");
@@ -72,12 +81,14 @@ class matterShooterMain extends Phaser.Scene {
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
         this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
+        this.cameras.main.zoomTo(2, 1000);
 
         // tilemap
         let wtypes = ["random", "arena", "bsp", "cellular"];
         this.world = this.generateWorld(
             // Phaser.Math.RND.pick(wtypes)
-            "bsp",
+            "arena",
+            // "cellular",
         ); // arena, cellular, bsp
         // this.world.level = world.level;
 
@@ -99,7 +110,7 @@ class matterShooterMain extends Phaser.Scene {
         // this.enemies = [];
         for (let _ = 0; _ < 10; _++) {
             let oc = Phaser.Math.RND.pick(this.world.open_cells);
-            const enemy = this.spawnEnemy('ghost', oc.c, oc.r);
+            const enemy = this.spawnEnemy(Phaser.Math.RND.pick(['ghost', 'spider']), oc.c, oc.r);
             // this.enemies.push(enemy);
             this.moving_entities.push(enemy);
         }
@@ -154,7 +165,6 @@ class matterShooterMain extends Phaser.Scene {
 
         this.matter.world.on('collisionactive', event => {
             for (let pair of event.pairs) {
-                // console.log(pair.bodyA, pair.bodyB);
                 // bullet-entity collision
                 if (pair.bodyA.gameObject.isBullet) {
                     pair.bodyA.gameObject.setActive(false);
@@ -173,13 +183,7 @@ class matterShooterMain extends Phaser.Scene {
                         pair.bodyA.gameObject.damaged(1);
                     // entity-entity collision
                 } else {
-                    // pickup
-                    // if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject == this.hp_potion) || (pair.bodyA.gameObject == this.hp_potion && pair.bodyB.gameObject.isPlayer)) {
-                    //     this.wizard.heal(SPRITE_DATA['hp-potion'].heal);
-
-                    // }
-                    // // enemy-player collision
-                    // else 
+                    // enemy-player collision
                     if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
                         this.wizard.damaged(1);
                     }
@@ -311,19 +315,23 @@ class matterShooterMain extends Phaser.Scene {
                 }
             }
         }
-        for (let c = tlc-1; c <= tlc + 7; c++) {
-            level[oc.r+1][c] = 0;
-            level[oc.r-7][c] = 0;
+        for (let c = tlc - 1; c <= tlc + 7; c++) {
+            level[oc.r + 1][c] = 0;
+            level[oc.r - 7][c] = 0;
         }
-        for (let r = tlr-1; r <= tlr + 7; r++) {
-           level[r][tlc-1] = 0;
-           level[r][tlc+7] = 0;
+        for (let r = tlr - 1; r <= tlr + 7; r++) {
+            level[r][tlc - 1] = 0;
+            level[r][tlc + 7] = 0;
         }
-        level[oc.r-3][oc.c] = 33;
+        level[oc.r - 3][oc.c] = 33;
 
         console.log('Door:', oc.c * TILE_SIZE, oc.r * TILE_SIZE)
 
         return { level: level, open_cells: open_cells, door: oc };
+    }
+
+    spawnItem(key, x, y) {
+
     }
 
     spawnEnemy(key, c = null, r = null) {
@@ -336,8 +344,12 @@ class matterShooterMain extends Phaser.Scene {
             _y = r * TILE_SIZE + HALF_TILE;
         }
 
+        let enemy;
+        if (key == 'ghost')
+            enemy = new Ghost(this.matter.world, this, _x, _y, key, null, { isSensor: true });//, wrapBounds);
+        else
+            enemy = new Spider(this.matter.world, this, _x, _y, key, null, { isSensor: true });//, wrapBounds);
 
-        const enemy = new Enemy(this.matter.world, this, _x, _y, key, null, { isSensor: true });//, wrapBounds);
         enemy.setCollisionCategory(this.enemiesCollisionCategory);
         enemy.setCollidesWith([this.wizardCollisionCategory, this.bulletCollisionCategory, this.worldCollisionCategory]);
         enemy.isEnemy = true;
@@ -412,7 +424,7 @@ class matterShooterMain extends Phaser.Scene {
 
         if (this.moving_entities.length - 1 < MAX_ENEMIES_PER_ROOM && Math.random() > 0.95) {
             let oc = Phaser.Math.RND.pick(this.world.open_cells);
-            const e = this.spawnEnemy('ghost', oc.c, oc.r);
+            const e = this.spawnEnemy(Phaser.Math.RND.pick(['ghost', 'spider']), oc.c, oc.r);
             // this.enemies.push(e);
             this.moving_entities.push(e);
         }
@@ -436,11 +448,37 @@ class matterShooterMain extends Phaser.Scene {
     }
 }
 
+class PickupEntity extends Phaser.Physics.Matter.Sprite {
+    constructor(world, scene, x, y, texture, bodyOptions) {
+        super(world, x, y, texture, null, { plugin: bodyOptions });
+        this.scene = scene;
+
+        console.assert(texture in SPRITE_DATA, `Missing ${texture} in SPRITE_DATA dictionary`);
+
+        this.setFriction(0, 0, 0);
+
+        this.setBody({
+            type: 'rectangle',
+            width: TILE_SIZE - 2,
+            height: TILE_SIZE - 2,
+        });
+
+        this.setDataEnabled();
+        this.scene.add.existing(this);
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+        this.setAngularVelocity(0);
+        this.setFixedRotation(0);
+    }
+}
+
 class MovingEntity extends Phaser.Physics.Matter.Sprite {
     constructor(world, scene, x, y, texture, bodyOptions) {
         super(world, x, y, texture, null, { plugin: bodyOptions });
 
-        this.scene = this.scene;
+        this.scene = scene;
 
         console.assert(texture in SPRITE_DATA, `Missing ${texture} in SPRITE_DATA dictionary`);
 
@@ -462,6 +500,8 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.data.set('hurt_cooldown_max', SPRITE_DATA[texture].hurt_cooldown_max);
         this.data.set('speed', SPRITE_DATA[texture].speed);
         this.data.set('power', SPRITE_DATA[texture].power)
+
+        this.data.set('inventory', []);
 
         // console.log(texture, this.data)
 
@@ -515,6 +555,33 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
         this.world.remove(this.body, true);
 
         if (this.isPlayer) this.scene.scene.restart();
+
+        if (this.isEnemy) {
+            let inv = this.data.get('inventory');
+            if (inv) {
+                for (let _inv of inv) {
+                    if (_inv in SPRITE_DATA) {
+                        if (Math.random() < SPRITE_DATA[_inv].drop_rate) {
+
+                            // abstract
+                            let drop = this.scene.matter.add.image(this.x, this.y, 'ghost-green', null, null);
+                            drop.setCollisionCategory(this.scene.pickupCollisionCategory);
+                            drop.setCollidesWith([this.scene.wizardCollisionCategory]);
+                            drop.setOnCollideWith(this.scene.wizard, pair => {
+                                // Do something
+                                // console.log('wowee')
+                                this.scene.wizard.heal(SPRITE_DATA['hp-potion'].heal);
+                                drop.setActive(false);
+                                drop.setVisible(false);
+                                this.world.remove(drop, true);
+                            });
+                            // spawnItem(_inv, this.x, this.y);
+
+                        }
+                    }
+                }
+            }
+        }
     }
 
     draw() {
@@ -540,7 +607,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
     }
 }
 
-class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
+class Spider extends MovingEntity {//Phaser.Physics.Matter.Sprite {
     constructor(world, scene, x, y, texture, bodyOptions) {
         super(world, scene, x, y, texture, null, { plugin: bodyOptions });
 
@@ -552,6 +619,93 @@ class Enemy extends MovingEntity {//Phaser.Physics.Matter.Sprite {
 
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
+
+        let inv = this.data.get('inventory');
+        if (texture == 'ghost')
+            inv.push('ghost-leg');
+        this.data.set('inventory', inv);
+
+        this.states = {
+            crawling: 0,
+            towards: 1,
+            away: 2,
+        }
+        this.data.set('state', this.states.crawling);
+        this.data.set('next-state-timer', SPRITE_DATA['spider'].state_change_timeout);
+
+        // this.text_debug = this.scene.add.text(this.x, this.y - TILE_SIZE, `${this.data.get('state')}`).setColor("#ff00ff");
+    }
+
+    preUpdate(time, delta) {
+        super.preUpdate(time, delta);
+
+        // go towards player
+        if (this.data.get('state') == this.states.towards) {
+            const dist = Math.sqrt((this.body.position.x - this.scene.wizard.x) ** 2 + (this.body.position.y - this.scene.wizard.y) ** 2);
+            if (dist < 520) {
+                if (this.body.position.x < this.scene.wizard.body.position.x)
+                    this.setVelocityX(0.5)
+                else
+                    this.setVelocityX(-0.5)
+                if (this.body.position.y < this.scene.wizard.body.position.y)
+                    this.setVelocityY(0.5)
+                else
+                    this.setVelocityY(-0.5)
+            }
+        } else if (this.data.get('state') == this.states.away) {
+            const dist = Math.sqrt((this.body.position.x - this.scene.wizard.x) ** 2 + (this.body.position.y - this.scene.wizard.y) ** 2);
+            if (dist < 220) {
+                if (this.body.position.x < this.scene.wizard.body.position.x)
+                    this.setVelocityX(-0.7)
+                else
+                    this.setVelocityX(0.7)
+                if (this.body.position.y < this.scene.wizard.body.position.y)
+                    this.setVelocityY(-0.7)
+                else
+                    this.setVelocityY(0.7)
+            }
+        } else {
+            if (Math.random() > 0.9) {
+                this.setVelocityX(Phaser.Math.FloatBetween(-2, 2))
+                this.setVelocityY(Phaser.Math.FloatBetween(-2, 2))
+            }
+        }
+
+        let timer = this.data.get('next-state-timer');
+        timer--;
+        if (timer == 0) {
+            let state = this.data.get('state');
+            state++;
+            if (state > Object.keys(this.states).length - 1) state = 0;
+            this.data.set('state', state);
+            timer = SPRITE_DATA['spider'].state_change_timeout;
+        }
+        this.data.set('next-state-timer', timer);
+
+        // this.text_debug.setText(`${this.data.get('state')}:${this.data.get('next-state-timer')}`);
+        // this.text_debug.x = this.x;
+        // this.text_debug.y = this.y+TILE_SIZE;
+
+        this.setAngularVelocity(0);
+    }
+}
+class Ghost extends MovingEntity {//Phaser.Physics.Matter.Sprite {
+    constructor(world, scene, x, y, texture, bodyOptions) {
+        super(world, scene, x, y, texture, null, { plugin: bodyOptions });
+
+        // this.setFrictionAir(0);
+        this.scene.add.existing(this);
+
+        const angle = Phaser.Math.Between(0, 360);
+        const speed = Phaser.Math.FloatBetween(1, 3);
+
+        this.setVelocityX(speed * Math.cos(angle));
+        this.setVelocityY(speed * Math.sin(angle));
+
+        let inv = this.data.get('inventory');
+        if (texture == 'ghost')
+            inv.push('ghost-leg');
+        this.data.set('inventory', inv);
     }
 
     preUpdate(time, delta) {
