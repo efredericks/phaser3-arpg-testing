@@ -6,12 +6,12 @@ var config = {
     zoom: 1,
 
     backgroundColor: "black",
-    // scale: {
-    //     mode: Phaser.Scale.FIT,
-    //     autoCenter: Phaser.Scale.CENTER_BOTH,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
     //     zoom: 4,
 
-    // },
+    },
     physics: {
         default: "matter",
         matter: {

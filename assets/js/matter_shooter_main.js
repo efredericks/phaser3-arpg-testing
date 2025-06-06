@@ -81,7 +81,8 @@ class matterShooterMain extends Phaser.Scene {
         this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor(0x1D1923);
         this.cameras.main.setBounds(0, 0, MAP_DATA.NUM_COLS * TILE_SIZE, MAP_DATA.NUM_ROWS * TILE_SIZE);
-        this.cameras.main.zoomTo(2, 1000);
+        this.cameras.main.setLerp(0.1, 0.1);
+        this.cameras.main.zoomTo(2, 10);
 
         // tilemap
         let wtypes = ["random", "arena", "bsp", "cellular"];
@@ -186,6 +187,7 @@ class matterShooterMain extends Phaser.Scene {
                     // enemy-player collision
                     if ((pair.bodyA.gameObject.isPlayer && pair.bodyB.gameObject.isEnemy) || (pair.bodyA.gameObject.isEnemy && pair.bodyB.gameObject.isPlayer)) {
                         this.wizard.damaged(1);
+                        this.cameras.main.shake(100, 0.001);
                     }
                 }
             }
@@ -294,7 +296,7 @@ class matterShooterMain extends Phaser.Scene {
 
         // carve out a town?
         let oc = Phaser.Math.RND.pick(open_cells); // center point of area
-        while (oc.c < 6 || oc.c > MAP_DATA.NUM_COLS - 7 || oc.r < 6 || oc.r > MAP_DATA.NUM_ROWS - 7) {
+        while (oc.c < 10 || oc.c > MAP_DATA.NUM_COLS - 11 || oc.r < 10 || oc.r > MAP_DATA.NUM_ROWS - 11) {
             oc = Phaser.Math.RND.pick(open_cells); // center point of area
         }
         level[oc.r][oc.c] = 33;
