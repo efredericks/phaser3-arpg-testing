@@ -30,6 +30,8 @@ const DIRECTIONS = [
 
 const MAX_ENEMIES_PER_ROOM = 100;
 const HALF_PI = Math.PI / 2.;
+const QUARTER_PI = Math.PI / 4.;
+const EIGHTH_PI = Math.PI / 8.;
 const TILE_SIZE = 16;
 const HALF_TILE = TILE_SIZE / 2;
 const QUARTER_TILE = TILE_SIZE / 4;
@@ -417,9 +419,24 @@ class matterShooterMain extends Phaser.Scene {
             }
             if (angle != null) {
                 this.wizard.data.set('fire_cooldown', 10);
+
+                // single
+                // const bullet = this.bullets.find(bullet => !bullet.active);
+                // if (bullet) {
+                //     bullet.fire(this.wizard.x, this.wizard.y, angle, 5);
+                // }
+                // tri
                 const bullet = this.bullets.find(bullet => !bullet.active);
                 if (bullet) {
                     bullet.fire(this.wizard.x, this.wizard.y, angle, 5);
+                }
+                const bullet2 = this.bullets.find(bullet2 => !bullet2.active);
+                if (bullet2) {
+                    bullet2.fire(this.wizard.x, this.wizard.y, angle - EIGHTH_PI, 5);
+                }
+                const bullet3 = this.bullets.find(bullet3 => !bullet3.active);
+                if (bullet3) {
+                    bullet3.fire(this.wizard.x, this.wizard.y, angle + EIGHTH_PI, 5);
                 }
             }
         } else {
