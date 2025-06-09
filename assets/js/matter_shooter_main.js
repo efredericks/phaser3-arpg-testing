@@ -51,7 +51,11 @@ class matterShooterMain extends Phaser.Scene {
         this.load.image("bullet", "assets/img/kenney_rpg-urban-pack/Tiles/tile_0060.png");
 
         this.load.image("tinydungeon-tiles", "assets/img/kenney_tiny-dungeon/Tilemap/tilemap_packed.png");
-        this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
+        // this.load.image("wizard", "assets/img/kenney_tiny-dungeon/Tiles/tile_0084.png");
+        this.load.spritesheet("wizard", "assets/img/tile_0084.png", {
+            frameWidth: TILE_SIZE,
+            frameHeight: TILE_SIZE
+        });
         this.load.image("ghost", "assets/img/kenney_tiny-dungeon/Tiles/tile_0121.png");
         this.load.image("ghost-green", "assets/img/kenney_tiny-dungeon/Tiles/tile_0108.png");
         this.load.image("spider", "assets/img/kenney_tiny-dungeon/Tiles/tile_0122.png");
@@ -93,8 +97,8 @@ class matterShooterMain extends Phaser.Scene {
         let wtypes = ["random", "arena", "bsp", "cellular"];
         this.world = this.generateWorld(
             // Phaser.Math.RND.pick(wtypes)
-            "arena",
-            // "cellular",
+            // "arena",
+            "cellular",
         ); // arena, cellular, bsp
         // this.world.level = world.level;
 
@@ -168,6 +172,14 @@ class matterShooterMain extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
 
         this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.moving_entities.length - 1}`).setColor("#000");
+
+        this.wizard.anims.create({
+            key: "rest",
+            frames: this.anims.generateFrameNumbers("wizard"),
+            frameRate: 5,
+            repeat: -1
+        });
+        this.wizard.play('rest');
 
         this.matter.world.on('collisionactive', event => {
             for (let pair of event.pairs) {
