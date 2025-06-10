@@ -80,6 +80,7 @@ class matterShooterMain extends Phaser.Scene {
         this.wizardCollisionCategory = this.matter.world.nextCategory();
         this.bulletCollisionCategory = this.matter.world.nextCategory();
         this.pickupCollisionCategory = this.matter.world.nextCategory();
+        this.portalCollisionCategory = this.matter.world.nextCategory();
 
         this.moving_entities = [];
 
@@ -130,7 +131,8 @@ class matterShooterMain extends Phaser.Scene {
         this.wizard = new MovingEntity(this.matter.world, this, woc.c * TILE_SIZE + HALF_TILE, woc.r * TILE_SIZE + HALF_TILE, 'wizard', { isSensor: true });
         this.wizard.isPlayer = true;
         this.wizard.setCollisionCategory(this.wizardCollisionCategory);
-        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory]);
+        this.wizard.setCollidesWith([this.enemiesCollisionCategory, this.worldCollisionCategory, this.pickupCollisionCategory, this.portalCollisionCategory]);
+        this.wizard.setDepth(100);
 
         //debug
         this.wizard.text_debug = this.add.text(this.wizard.x, this.wizard.y - TILE_SIZE, `${this.wizard.x}, ${this.wizard.y}`).setColor("#000");
@@ -153,7 +155,6 @@ class matterShooterMain extends Phaser.Scene {
         this.hp_potion.setCollisionCategory(this.pickupCollisionCategory);
         this.hp_potion.setCollidesWith([this.wizardCollisionCategory]);
 
-
         this.wizard.setOnCollideWith(this.hp_potion, pair => {
             // Do something
             // console.log('wowee')
@@ -162,6 +163,13 @@ class matterShooterMain extends Phaser.Scene {
             this.hp_potion.setVisible(false);
             this.hp_potion.world.remove(this.hp_potion, true);
         });
+
+        for (let p of this.world.portals) {
+            this.wizard.setOnCollideWith(p, pair => {
+                console.log(p)
+            });
+        }
+
 
 
 
@@ -342,11 +350,32 @@ class matterShooterMain extends Phaser.Scene {
             level[r][tlc - 1] = 0;
             level[r][tlc + 7] = 0;
         }
-        level[oc.r - 3][oc.c] = 33;
+        // level[oc.r - 3][oc.c] = 33;
+        let portals = [];
+        const portal = this.matter.add.image(oc.c * TILE_SIZE + HALF_TILE, (oc.r - 3) * TILE_SIZE + HALF_TILE, 'ouch', null, null).setStatic(true);
+        portal.label = "portal";
+        portal.portal_id = "1";
+        portal.setDepth(98);
+        portal.setCollisionCategory(this.portalCollisionCategory);
+        portal.setCollidesWith([this.wizardCollisionCategory]);
+        portals.push(portal);
 
-        console.log('Door:', oc.c * TILE_SIZE, oc.r * TILE_SIZE)
+        const portal2 = this.matter.add.image(oc.c * TILE_SIZE + HALF_TILE, (oc.r - 5) * TILE_SIZE + HALF_TILE, 'ouch', null, null).setStatic(true);
+        portal2.label = "portal";
+        portal2.portal_id = "2";
+        portal2.setDepth(98);
+        portal2.setCollisionCategory(this.portalCollisionCategory);
+        portal2.setCollidesWith([this.wizardCollisionCategory]);
+        portals.push(portal2);
 
-        return { level: level, open_cells: open_cells, door: oc };
+
+        // console.log('Door:', oc.c * TILE_SIZE, oc.r * TILE_SIZE)
+
+        return { level: level, open_cells: open_cells, door: oc, portals: portals };
+    }
+
+    goAway() {
+        console.log("ew")
     }
 
     spawnItem(key, x, y) {
@@ -568,7 +597,7 @@ class MovingEntity extends Phaser.Physics.Matter.Sprite {
             if (drop.texture.key in inv) {
                 inv[drop.texture.key]++;
             } else {
-                inv[drop.texture.key]=1;
+                inv[drop.texture.key] = 1;
             }
         }
         this.data.set('inventory', inv);
