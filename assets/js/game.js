@@ -10,7 +10,6 @@ var config = {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
     //     zoom: 4,
-
     },
     physics: {
         default: "matter",
@@ -24,9 +23,9 @@ var config = {
         // }
     },
     scene: [
-        matterShooterMain
-        // shooterMain
-        // endlessMain
+        setupGameData,
+        exploratoriumOverworld, exploratoriumDetailed, exploratoriumShop,
+        pauseMenu,
     ],
     pixelArt: true,
     roundPixels: true,
@@ -39,7 +38,4 @@ var config = {
 
 
 };
-
 var game = new Phaser.Game(config);
-// still getting pushed through - tried 32 and 64
-// game.physics.arcade.TILE_BIAS = 32;
