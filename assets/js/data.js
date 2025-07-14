@@ -40,6 +40,7 @@ const QUARTER_TILE = TILE_SIZE / 4;
 // DATA-RELATED FUNCTIONS - we'll keep them separated from the Phaser physics objects for now
 // only storing things that will change over time
 // move to localStorage eventually
+// NOT IMPLEMENTED IN MAIN YET!
 class EntityData {
     constructor(entity_id) {
         this.data = {};
@@ -80,7 +81,9 @@ class PlayerData extends EntityData {
 
         let sd = getSpriteData('player');
         let fc = new FighterComponent(sd.hp, sd.defense, sd.speed, sd.power);
-        this.setData('components', { 'FighterComponent': fc });
+        let wc = new WeaponComponent('base');
+
+        this.setData('components', { 'FighterComponent': fc, 'WeaponComponent': wc });
         this.setData('position', getValidPosition(Phaser, 'overworld'));
     }
 }
@@ -93,7 +96,6 @@ class EnemyData extends EntityData {
         let sd = getSpriteData(key);
         let fc = new FighterComponent(sd.hp, sd.defense, sd.speed, sd.power);
         this.setData('components', { 'FighterComponent': fc });
-
         this.setData('position', getValidPosition(Phaser, 'overworld'));
     }
 }
@@ -104,6 +106,14 @@ class FighterComponent {
         this.def = def;
         this.speed = speed;
         this.power = power;
+    }
+}
+
+// weapon separate from fighter 
+class WeaponComponent {
+    constructor(type) {//}, power) {
+        this.type = type;
+        // this.power = power; // just use base power for now
     }
 }
 
@@ -152,7 +162,8 @@ function generateOverworld(Phaser) {
     let level = [];
     let open_cells = [];
 
-    let t = "cellular";
+    let t = "random";
+    // let t = "cellular";
 
     if (t == "random") {
         for (let r = 0; r < MAP_DATA.NUM_ROWS; r++) {

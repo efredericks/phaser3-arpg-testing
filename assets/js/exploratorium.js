@@ -98,6 +98,7 @@ class exploratoriumDetailed extends Phaser.Scene {
         } else {
             this.player.setVelocityX(0);
         }
+
     }
 }
 
@@ -301,6 +302,13 @@ class exploratoriumOverworld extends Phaser.Scene {
         this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
         this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+
+        this.key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+        this.key2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+        this.key3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+        this.key4 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
+
+
         this.cursors = this.input.keyboard.createCursorKeys();
 
         this.text_debug = this.add.text(TILE_SIZE, TILE_SIZE, `Enemies: ${this.moving_entities.length - 1}`).setColor("#000");
@@ -612,6 +620,19 @@ class exploratoriumOverworld extends Phaser.Scene {
             this.player.setVelocityX(0);
         }
 
+
+        if (this.key1.isDown) {
+            this.player.weapon = 'base';
+        } else if (this.key2.isDown) {
+            this.player.weapon = 'tri';
+        } else if (this.key3.isDown) {
+            this.player.weapon = 'big';
+        // } else if (this.key4.isDown) {
+        //     this.player.weapon = 'sin';
+        }
+
+
+
         let fc = this.player.data.get('fire_cooldown');
 
         if (fc == 0) {
@@ -632,22 +653,34 @@ class exploratoriumOverworld extends Phaser.Scene {
                 this.player.data.set('fire_cooldown', 10);
 
                 // single
-                // const bullet = this.bullets.find(bullet => !bullet.active);
-                // if (bullet) {
-                //     bullet.fire(this.player.x, this.player.y, angle, 5);
-                // }
-                // tri
                 const bullet = this.bullets.find(bullet => !bullet.active);
-                if (bullet) {
-                    bullet.fire(this.player.x, this.player.y, angle, 5);
-                }
-                const bullet2 = this.bullets.find(bullet2 => !bullet2.active);
-                if (bullet2) {
-                    bullet2.fire(this.player.x, this.player.y, angle - EIGHTH_PI, 5);
-                }
-                const bullet3 = this.bullets.find(bullet3 => !bullet3.active);
-                if (bullet3) {
-                    bullet3.fire(this.player.x, this.player.y, angle + EIGHTH_PI, 5);
+                switch (this.player.weapon) {
+                    case "base":
+                    default:
+                        if (bullet) {
+                            bullet.fire(this.player.x, this.player.y, angle, 5);
+                        }
+                        break;
+                    case "big":
+                        if (bullet) {
+                            bullet.fire(this.player.x, this.player.y, angle, 1, 2);
+                        }
+                        break;
+                    case "sin":
+                        break;
+                    case "tri":
+                        if (bullet) {
+                            bullet.fire(this.player.x, this.player.y, angle, 5);
+                        }
+                        const bullet2 = this.bullets.find(bullet2 => !bullet2.active);
+                        if (bullet2) {
+                            bullet2.fire(this.player.x, this.player.y, angle - EIGHTH_PI, 5);
+                        }
+                        const bullet3 = this.bullets.find(bullet3 => !bullet3.active);
+                        if (bullet3) {
+                            bullet3.fire(this.player.x, this.player.y, angle + EIGHTH_PI, 5);
+                        }
+                        break;
                 }
             }
         } else {
@@ -732,6 +765,8 @@ class ObjectFactory {
         player.text_debug = scene.add.text(player.x, player.y - TILE_SIZE, `${player.x}, ${player.y}`).setColor("#000");
         // player.x = player.positions['overworld'].x;
         // player.y = player.positions['overworld'].y;
+
+        player.weapon = 'base';
 
         return player;
     }
@@ -1072,31 +1107,38 @@ class Bullet extends Phaser.Physics.Matter.Sprite {
         this.isBullet = true;
 
         this.scene.add.existing(this);
+        this.alg = 'straight';
 
         this.world.remove(this.body, true);
     }
 
-    fire(x, y, angle, speed) {
-
+    fire(x, y, angle, speed, scale = 1., alg = 'straight') {
         this.world.add(this.body);
-
 
         this.setPosition(x, y);
         this.setActive(true);
         this.setVisible(true);
+
+        // sprite/body size
+        this.setScale(scale, scale);
+        this.setSize(this.width * scale, this.height * scale);
 
         this.setRotation(angle);
         this.setVelocityX(speed * Math.cos(angle));
         this.setVelocityY(speed * Math.sin(angle));
 
         this.lifespan = 1000;
+        this.alg = alg;
     }
 
     preUpdate(time, delta) {
         super.preUpdate(time, delta);
 
-        this.lifespan -= delta;
+        if (this.alg === 'sin') {
+            // todo
+        }
 
+        this.lifespan -= delta;
         if (this.lifespan <= 0) {
             this.setActive(false);
             this.setVisible(false);
